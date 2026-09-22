@@ -70,7 +70,7 @@ const DEFAULT_PRESETS = [
 
 const DEFAULT_PROVIDERS = {
   omniroute: {
-    name: 'OmniRoute (VPS)',
+    name: 'OmniRoute (Router)',
     base_url: 'https://omniroute.shadin.info/v1',
     api_key: '',
     model: 'antigravity/gemini-3.5-flash-low',
@@ -98,7 +98,7 @@ const DEFAULT_PROVIDERS = {
     language: 'auto',
   },
   custom_vps: {
-    name: 'Custom VPS',
+    name: 'Custom Router',
     base_url: 'http://your-vps:8000/v1',
     api_key: '',
     model: 'whisper-large-v3',

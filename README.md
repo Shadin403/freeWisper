@@ -42,7 +42,7 @@
 - **⚡ মাল্টিপল এআই প্রোভাইডার সাপোর্ট (Multi-Provider Support):**
   - **Groq AI** (Whisper-large-v3 — আল্ট্রা ফাস্ট ও ফ্রি)
   - **OpenRouter AI** (Gemini, Llama 3, DeepSeek ইত্যাদি)
-  - **OmniRoute / Custom VPS** (Gemini Multimodal Single-Pass)
+  - **OmniRoute / Custom Router** (Gemini Multimodal Single-Pass)
   - **OpenAI Official**
   - সার্ভার থেকে সরাসরি সব এআই মডেলের তালিকা ফেচ ও রিয়েল-টাইম সার্চ সুবিধা।
 - **💾 পার্মানেন্ট কনফিগারেশন (Never Lose Settings):**

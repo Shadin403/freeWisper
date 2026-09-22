@@ -442,11 +442,11 @@ export default function SettingsDashboard() {
               <label className="text-xs font-bold text-[#E2E8F0] block mb-2.5">Active Provider Profile:</label>
               <div className="flex flex-wrap gap-2">
                 {[
-                  { id: 'omniroute', label: '⚡ OmniRoute (VPS)', icon: Zap },
+                  { id: 'omniroute', label: '⚡ OmniRoute (Router)', icon: Zap },
                   { id: 'openrouter', label: '🌐 OpenRouter AI', icon: Globe },
                   { id: 'groq', label: '🚀 Groq (Whisper)', icon: Radio },
                   { id: 'openai', label: '🟢 OpenAI Official', icon: Cpu },
-                  { id: 'custom_vps', label: '🖥️ Custom VPS', icon: Cpu },
+                  { id: 'custom_vps', label: '🖥️ Custom Router', icon: Cpu },
                 ].map((p) => {
                   const isSelected = activeProviderId === p.id;
                   return (
