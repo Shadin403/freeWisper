@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "start": "electron .",
     "app": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
-    "dist": "vite build && electron-builder --win dir"
+    "dist": "vite build && electron-builder --win dir -c.win.signAndEditExecutable=false && node scripts/brand-windows-exe.js \"dist-electron/win-unpacked/FreeWispr Voice Assistant.exe\""
   },
   "keywords": [
     "freewispr",
@@ -59,7 +59,7 @@
     "win": {
       "icon": "build/icon.ico",
       "target": "dir",
-      "signAndEditExecutable": true,
+      "signAndEditExecutable": false,
       "requestedExecutionLevel": "asInvoker"
     },
     "files": [
