@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E1B4B" />
+      <stop offset="50%" stop-color="#311042" />
+      <stop offset="100%" stop-color="#0F172A" />
+    </linearGradient>
+
+    <!-- Glowing Accent Gradient -->
+    <linearGradient id="orbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8B5CF6" />
+      <stop offset="50%" stop-color="#6366F1" />
+      <stop offset="100%" stop-color="#06B6D4" />
+    </linearGradient>
+
+    <!-- Mic Capsule Gradient -->
+    <linearGradient id="micGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#E2E8F0" />
+    </linearGradient>
+
+    <!-- Glow Filter -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="16" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <filter id="softGlow" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Rounded Squircle Base -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)" />
+  <rect width="504" height="504" x="4" y="4" rx="124" fill="none" stroke="url(#orbGrad)" stroke-width="6" opacity="0.7" />
+
+  <!-- Glowing Circular Sound Rings -->
+  <circle cx="256" cy="256" r="160" fill="none" stroke="url(#orbGrad)" stroke-width="4" opacity="0.3" stroke-dasharray="12 12" />
+  <circle cx="256" cy="256" r="120" fill="url(#orbGrad)" opacity="0.12" filter="url(#glow)" />
+
+  <!-- Outer Soundwaves -->
+  <!-- Left Waves -->
+  <path d="M 120 200 A 70 70 0 0 0 120 312" fill="none" stroke="#A78BFA" stroke-width="8" stroke-linecap="round" opacity="0.8" filter="url(#softGlow)" />
+  <path d="M 88 170 A 110 110 0 0 0 88 342" fill="none" stroke="#38BDF8" stroke-width="7" stroke-linecap="round" opacity="0.6" />
+
+  <!-- Right Waves -->
+  <path d="M 392 200 A 70 70 0 0 1 392 312" fill="none" stroke="#A78BFA" stroke-width="8" stroke-linecap="round" opacity="0.8" filter="url(#softGlow)" />
+  <path d="M 424 170 A 110 110 0 0 1 424 342" fill="none" stroke="#38BDF8" stroke-width="7" stroke-linecap="round" opacity="0.6" />
+
+  <!-- Glowing Central Orb -->
+  <circle cx="256" cy="256" r="88" fill="url(#orbGrad)" filter="url(#glow)" opacity="0.85" />
+
+  <!-- Stylized Microphone -->
+  <!-- Mic Capsule -->
+  <rect x="226" y="160" width="60" height="110" rx="30" fill="url(#micGrad)" filter="url(#softGlow)" />
+  <!-- Mic Inner Details -->
+  <line x1="240" y1="195" x2="272" y2="195" stroke="#CBD5E1" stroke-width="3.5" stroke-linecap="round" />
+  <line x1="240" y1="210" x2="272" y2="210" stroke="#CBD5E1" stroke-width="3.5" stroke-linecap="round" />
+  <line x1="240" y1="225" x2="272" y2="225" stroke="#CBD5E1" stroke-width="3.5" stroke-linecap="round" />
+
+  <!-- Mic Arc Stand -->
+  <path d="M 200 230 A 56 56 0 0 0 312 230" fill="none" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" />
+  <!-- Mic Stem -->
+  <line x1="256" y1="286" x2="256" y2="330" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" />
+  <!-- Mic Base -->
+  <line x1="216" y1="330" x2="296" y2="330" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" />
+
+  <!-- AI Sparkles -->
+  <!-- Top Right Sparkle -->
+  <path d="M 360 110 Q 360 135 385 135 Q 360 135 360 160 Q 360 135 335 135 Q 360 135 360 110 Z" fill="#FACC15" filter="url(#softGlow)" />
+  <!-- Top Left Mini Sparkle -->
+  <path d="M 140 120 Q 140 135 155 135 Q 140 135 140 150 Q 140 135 125 135 Q 140 135 140 120 Z" fill="#38BDF8" opacity="0.9" />
+</svg>
