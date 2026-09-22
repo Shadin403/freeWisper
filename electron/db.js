@@ -12,6 +12,28 @@ const USER_DATA_PATH = app ? app.getPath('userData') : path.join(process.env.APP
 const CONFIG_PATH = path.join(USER_DATA_PATH, 'config.json');
 const HISTORY_PATH = path.join(USER_DATA_PATH, 'history.json');
 
+// Stable internal IDs are kept for backward compatibility, while these
+// canonical display names replace stale labels saved by older app builds.
+const PROVIDER_DISPLAY_NAMES = {
+  omniroute: 'OmniRoute (Router)',
+  openrouter: 'OpenRouter AI',
+  groq: 'Groq',
+  openai: 'OpenAI',
+  custom_vps: 'Custom Router',
+};
+
+function migrateProviderDisplayNames(providers = {}) {
+  return Object.fromEntries(
+    Object.entries(providers).map(([id, provider]) => [
+      id,
+      {
+        ...(provider || {}),
+        name: PROVIDER_DISPLAY_NAMES[id] || provider?.name || id,
+      },
+    ])
+  );
+}
+
 const DEFAULT_PRESETS = [
   {
     id: 'smart_polish',
@@ -155,14 +177,31 @@ class Storage {
       if (fs.existsSync(CONFIG_PATH)) {
         const raw = fs.readFileSync(CONFIG_PATH, 'utf-8');
         const parsed = JSON.parse(raw);
-        return {
+        const providers = migrateProviderDisplayNames({
+          ...DEFAULT_PROVIDERS,
+          ...(parsed.providers || {}),
+        });
+        const migrated = {
           ...DEFAULT_CONFIG,
           ...parsed,
-          providers: { ...DEFAULT_PROVIDERS, ...(parsed.providers || {}) },
+          providers,
           ui: { ...DEFAULT_CONFIG.ui, ...(parsed.ui || {}) },
           hotkeys: { ...DEFAULT_CONFIG.hotkeys, ...(parsed.hotkeys || {}) },
           presets: parsed.presets || DEFAULT_PRESETS,
         };
+
+        // Persist renamed labels once so old AppData config is permanently migrated.
+        const hadLegacyProviderName = Object.entries(PROVIDER_DISPLAY_NAMES).some(
+          ([id, name]) => parsed.providers?.[id]?.name && parsed.providers[id].name !== name
+        );
+        if (hadLegacyProviderName) {
+          try {
+            fs.writeFileSync(CONFIG_PATH, JSON.stringify(migrated, null, 2), 'utf-8');
+          } catch (writeError) {
+            console.warn('Could not persist provider-name migration:', writeError.message);
+          }
+        }
+        return migrated;
       }
     } catch (e) {
       console.error('Failed to load config.json, using defaults:', e);
@@ -194,10 +233,10 @@ class Storage {
     this.config = {
       ...this.config,
       ...partialConfig,
-      providers: {
+      providers: migrateProviderDisplayNames({
         ...(this.config.providers || {}),
         ...(partialConfig.providers || {}),
-      },
+      }),
       ui: {
         ...(this.config.ui || {}),
         ...(partialConfig.ui || {}),

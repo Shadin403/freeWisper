@@ -29,6 +29,16 @@ import { AudioRecorder } from '../utils/audioRecorder';
 
 import Logo from './Logo';
 
+const PROVIDER_PROFILES = [
+  { id: 'omniroute', label: '⚡ OmniRoute (Router)', name: 'OmniRoute (Router)', icon: Zap },
+  { id: 'openrouter', label: '🌐 OpenRouter AI', name: 'OpenRouter AI', icon: Globe },
+  { id: 'groq', label: '🚀 Groq (Whisper)', name: 'Groq', icon: Radio },
+  { id: 'openai', label: '🟢 OpenAI Official', name: 'OpenAI', icon: Cpu },
+  { id: 'custom_vps', label: '🖥️ Custom Router', name: 'Custom Router', icon: Cpu },
+];
+
+const getProviderName = (id) => PROVIDER_PROFILES.find((provider) => provider.id === id)?.name || id;
+
 export default function SettingsDashboard() {
   const [activeTab, setActiveTab] = useState('provider'); // 'provider' | 'presets' | 'shortcuts' | 'history' | 'about'
   const [config, setConfig] = useState(null);
@@ -135,7 +145,7 @@ export default function SettingsDashboard() {
     saveCurrentProviderBuffer(activeProviderId);
     setActiveProviderId(newPid);
     loadProviderIntoForm(newPid);
-    showBanner(`Loaded profile: ${newPid.toUpperCase()}`, 'info');
+    showBanner(`Loaded profile: ${getProviderName(newPid)}`, 'info');
   };
 
   const saveCurrentProviderBuffer = (pid) => {
@@ -145,7 +155,7 @@ export default function SettingsDashboard() {
       providers: {
         ...config.providers,
         [pid]: {
-          name: pid.toUpperCase(),
+          name: getProviderName(pid),
           base_url: baseUrl.trim(),
           api_key: apiKey.trim(),
           model: selectedModel.trim(),
@@ -321,7 +331,7 @@ export default function SettingsDashboard() {
       const updatedProviders = {
         ...(config?.providers || {}),
         [activeProviderId]: {
-          name: activeProviderId.toUpperCase(),
+          name: getProviderName(activeProviderId),
           base_url: baseUrl.trim(),
           api_key: apiKey.trim(),
           model: selectedModel.trim(),
@@ -441,13 +451,7 @@ export default function SettingsDashboard() {
             <div className="p-3.5 rounded-2xl bg-[#131522] border border-[#25283D]">
               <label className="text-xs font-bold text-[#E2E8F0] block mb-2.5">Active Provider Profile:</label>
               <div className="flex flex-wrap gap-2">
-                {[
-                  { id: 'omniroute', label: '⚡ OmniRoute (Router)', icon: Zap },
-                  { id: 'openrouter', label: '🌐 OpenRouter AI', icon: Globe },
-                  { id: 'groq', label: '🚀 Groq (Whisper)', icon: Radio },
-                  { id: 'openai', label: '🟢 OpenAI Official', icon: Cpu },
-                  { id: 'custom_vps', label: '🖥️ Custom Router', icon: Cpu },
-                ].map((p) => {
+                {PROVIDER_PROFILES.map((p) => {
                   const isSelected = activeProviderId === p.id;
                   return (
                     <button
@@ -481,7 +485,7 @@ export default function SettingsDashboard() {
 
               <div>
                 <label className="text-xs font-bold text-[#E2E8F0] block mb-1">
-                  API Key (Secret for {activeProviderId.toUpperCase()}):
+                  API Key (Secret for {getProviderName(activeProviderId)}):
                 </label>
                 <div className="relative flex items-center">
                   <input
