@@ -62,10 +62,10 @@ try {
   versionInfo.setStringValues(
     { lang: 1033, codepage: 1200 },
     {
-      CompanyName: packageJson.author || 'Shawon Sarkar',
+      CompanyName: packageJson.author || 'Shadin Sarkar',
       FileDescription: 'FreeWispr Voice Assistant',
       InternalName: 'FreeWispr Voice Assistant',
-      LegalCopyright: packageJson.build?.copyright || 'Copyright © 2026 Shawon Sarkar',
+      LegalCopyright: packageJson.build?.copyright || 'Copyright © 2026 Shadin Sarkar',
       OriginalFilename: 'FreeWispr Voice Assistant.exe',
       ProductName: 'FreeWispr Voice Assistant',
       FileVersion: `${major}.${minor}.${patch}.${revision}`,

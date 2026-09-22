@@ -24,7 +24,7 @@
     "stt",
     "ai-assistant"
   ],
-  "author": "Shawon Sarkar",
+  "author": "Shadin Sarkar",
   "license": "MIT",
   "dependencies": {
     "axios": "^1.7.9",
@@ -52,7 +52,7 @@
     "productName": "FreeWispr Voice Assistant",
     "executableName": "FreeWispr Voice Assistant",
     "artifactName": "FreeWispr-${version}-${arch}.${ext}",
-    "copyright": "Copyright © 2026 Shawon Sarkar",
+    "copyright": "Copyright © 2026 Shadin Sarkar",
     "directories": {
       "output": "dist-electron"
     },

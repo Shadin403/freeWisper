@@ -182,4 +182,4 @@ npm run dist     # Build and package the Windows application
 
 FreeWispr is available under the [MIT License](LICENSE).
 
-Copyright © 2026 Shawon Sarkar.
+Copyright © 2026 Shadin Sarkar.
