@@ -71,25 +71,34 @@ for (let i = 0; i < 256; i++) {
 }
 
 /**
- * Packs PNG buffer into standard Windows .ICO format
+ * Packs multiple PNG buffers into one standard multi-resolution Windows .ICO.
+ * Windows Explorer and the taskbar require 16/24/32/48/64/128/256 sizes;
+ * a single-size ICO often falls back to Electron's default icon.
  */
-function pngToIco(pngBuffer, size = 64) {
+function pngsToIco(images) {
   const icoHeader = Buffer.alloc(6);
   icoHeader.writeUInt16LE(0, 0); // Reserved
   icoHeader.writeUInt16LE(1, 2); // Type: 1 = ICO
-  icoHeader.writeUInt16LE(1, 4); // Count = 1 image
+  icoHeader.writeUInt16LE(images.length, 4);
 
-  const dirEntry = Buffer.alloc(16);
-  dirEntry.writeUInt8(size >= 256 ? 0 : size, 0); // Width
-  dirEntry.writeUInt8(size >= 256 ? 0 : size, 1); // Height
-  dirEntry.writeUInt8(0, 2); // Color palette
-  dirEntry.writeUInt8(0, 3); // Reserved
-  dirEntry.writeUInt16LE(1, 4); // Color planes
-  dirEntry.writeUInt16LE(32, 6); // Bits per pixel
-  dirEntry.writeUInt32LE(pngBuffer.length, 8); // Size
-  dirEntry.writeUInt32LE(22, 12); // Offset
+  const entries = [];
+  let dataOffset = 6 + images.length * 16;
 
-  return Buffer.concat([icoHeader, dirEntry, pngBuffer]);
+  for (const { size, png } of images) {
+    const entry = Buffer.alloc(16);
+    entry.writeUInt8(size >= 256 ? 0 : size, 0);
+    entry.writeUInt8(size >= 256 ? 0 : size, 1);
+    entry.writeUInt8(0, 2); // No palette
+    entry.writeUInt8(0, 3); // Reserved
+    entry.writeUInt16LE(1, 4); // Color planes
+    entry.writeUInt16LE(32, 6); // Bits per pixel
+    entry.writeUInt32LE(png.length, 8);
+    entry.writeUInt32LE(dataOffset, 12);
+    entries.push(entry);
+    dataOffset += png.length;
+  }
+
+  return Buffer.concat([icoHeader, ...entries, ...images.map(({ png }) => png)]);
 }
 
 /**
@@ -204,20 +213,22 @@ const electronDir = path.join(__dirname, '../electron');
   if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
 });
 
-// Generate 64x64 & 32x32 crisp icons
-const png64 = generateFreeWisprIcon(64);
-const png32 = generateFreeWisprIcon(32);
-const ico64 = pngToIco(png64, 64);
+// Generate a complete Windows icon set. The 256px PNG is also used by
+// BrowserWindow so Windows never falls back to the Electron icon.
+const windowsSizes = [16, 24, 32, 48, 64, 128, 256];
+const iconImages = windowsSizes.map((size) => ({ size, png: generateFreeWisprIcon(size) }));
+const iconBySize = Object.fromEntries(iconImages.map(({ size, png }) => [size, png]));
+const windowsIco = pngsToIco(iconImages);
 
-// Write to files
-fs.writeFileSync(path.join(buildDir, 'icon.ico'), ico64);
-fs.writeFileSync(path.join(publicDir, 'icon.ico'), ico64);
-fs.writeFileSync(path.join(publicDir, 'favicon.ico'), ico64);
-fs.writeFileSync(path.join(electronDir, 'icon.png'), png64);
-fs.writeFileSync(path.join(electronDir, 'tray-icon.png'), png32);
-fs.writeFileSync(path.join(publicDir, 'icon.png'), png64);
+// Write the same branded artwork everywhere Electron/Windows may look.
+fs.writeFileSync(path.join(buildDir, 'icon.ico'), windowsIco);
+fs.writeFileSync(path.join(publicDir, 'icon.ico'), windowsIco);
+fs.writeFileSync(path.join(publicDir, 'favicon.ico'), windowsIco);
+fs.writeFileSync(path.join(electronDir, 'icon.png'), iconBySize[256]);
+fs.writeFileSync(path.join(electronDir, 'tray-icon.png'), iconBySize[32]);
+fs.writeFileSync(path.join(publicDir, 'icon.png'), iconBySize[256]);
 
-console.log('✅ Generated High-Definition Icons:');
-console.log(' - electron/icon.png (64x64)');
+console.log('✅ Generated FreeWispr multi-resolution Windows icons:');
+console.log(` - build/icon.ico (${windowsSizes.join(', ')}px)`);
+console.log(' - electron/icon.png (256x256)');
 console.log(' - electron/tray-icon.png (32x32)');
-console.log(' - build/icon.ico (Windows executable icon)');

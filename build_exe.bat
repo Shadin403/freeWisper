@@ -40,8 +40,8 @@ echo [4/5] Building Vite React UI...
 call npm run build
 
 echo.
-echo [5/5] Packaging Standalone Windows .EXE with Custom Logo...
-call npx electron-builder --win dir -c.win.signAndEditExecutable=false -c.win.icon=build/icon.ico
+echo [5/5] Packaging Standalone Windows .EXE with FreeWispr Icon & Metadata...
+call npx electron-builder --win dir -c.win.icon=build/icon.ico
 
 if %errorlevel% equ 0 (
     echo.

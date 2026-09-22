@@ -15,6 +15,13 @@ let widgetWindow = null;
 let settingsWindow = null;
 let tray = null;
 
+// Set application identity BEFORE any window is created. This controls the
+// Windows taskbar title, jump-list name, notifications and icon grouping.
+app.setName('FreeWispr Voice Assistant');
+if (process.platform === 'win32') {
+  app.setAppUserModelId('com.freewispr.voicetyping');
+}
+
 // Single Instance Lock
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
@@ -392,10 +399,6 @@ ipcMain.handle('open-external', async (e, url) => {
 
 // App Lifecycle
 app.whenReady().then(() => {
-  // Set Windows App User Model ID for Taskbar icon & grouping
-  if (process.platform === 'win32') {
-    app.setAppUserModelId('com.freewispr.voicetyping');
-  }
 
   // Automatically grant microphone & media permissions to Electron windows
   session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {

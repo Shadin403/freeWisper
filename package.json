@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "start": "electron .",
     "app": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
-    "dist": "vite build && electron-builder --win dir -c.win.signAndEditExecutable=false"
+    "dist": "vite build && electron-builder --win dir"
   },
   "keywords": [
     "freewispr",
@@ -50,13 +50,16 @@
   "build": {
     "appId": "com.freewispr.voicetyping",
     "productName": "FreeWispr Voice Assistant",
+    "executableName": "FreeWispr Voice Assistant",
+    "artifactName": "FreeWispr-${version}-${arch}.${ext}",
+    "copyright": "Copyright © 2026 Shawon Sarkar",
     "directories": {
       "output": "dist-electron"
     },
     "win": {
       "icon": "build/icon.ico",
       "target": "dir",
-      "signAndEditExecutable": false,
+      "signAndEditExecutable": true,
       "requestedExecutionLevel": "asInvoker"
     },
     "files": [
