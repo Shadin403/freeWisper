@@ -58,9 +58,9 @@ class AIEngine {
    */
   async processVoicePipeline(base64Audio, preset = {}, options = {}) {
     const {
-      baseUrl = 'https://omniroute.shadin.info/v1',
+      baseUrl = '',
       apiKey = '',
-      model = 'antigravity/gemini-3.5-flash-low',
+      model = '',
       language = 'auto',
       temperature = 0.2,
       maxTokens = 600,
@@ -69,6 +69,12 @@ class AIEngine {
 
     if (!base64Audio) {
       return { success: false, rawText: '', finalText: '', error: 'No audio data' };
+    }
+    if (!baseUrl || !baseUrl.trim()) {
+      return { success: false, rawText: '', finalText: '', error: 'Please configure an API Base URL in FreeWispr Control Center.' };
+    }
+    if (!model || !model.trim()) {
+      return { success: false, rawText: '', finalText: '', error: 'Please select or enter an AI model in FreeWispr Control Center.' };
     }
 
     const isGeminiOrMultimodal =
@@ -133,7 +139,7 @@ class AIEngine {
       '3. Keep formatting crisp, natural, and concise.';
 
     const payload = {
-      model: model || 'antigravity/gemini-3.5-flash-low',
+      model: model.trim(),
       messages: [
         { role: 'system', content: systemPrompt },
         {
@@ -178,7 +184,7 @@ class AIEngine {
       // Fallback payload using image_url data URI
       try {
         const payloadFallback = {
-          model: model || 'antigravity/gemini-3.5-flash-low',
+          model: model.trim(),
           messages: [
             { role: 'system', content: systemPrompt },
             {

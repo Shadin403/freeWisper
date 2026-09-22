@@ -93,9 +93,9 @@ const DEFAULT_PRESETS = [
 const DEFAULT_PROVIDERS = {
   omniroute: {
     name: 'OmniRoute (Router)',
-    base_url: 'https://omniroute.shadin.info/v1',
+    base_url: '',
     api_key: '',
-    model: 'antigravity/gemini-3.5-flash-low',
+    model: '',
     language: 'auto',
   },
   openrouter: {

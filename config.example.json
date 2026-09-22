@@ -3,9 +3,9 @@
     "providers": {
         "omniroute": {
             "name": "OmniRoute (Router)",
-            "base_url": "https://omniroute.shadin.info/v1",
-            "api_key": "YOUR_OMNIROUTE_API_KEY",
-            "model": "antigravity/gemini-3.5-flash-low",
+            "base_url": "",
+            "api_key": "",
+            "model": "",
             "language": "auto"
         },
         "openrouter": {
@@ -39,18 +39,18 @@
     },
     "stt": {
         "provider": "custom_vps",
-        "endpoint_url": "https://omniroute.shadin.info/v1/chat/completions",
-        "api_key": "YOUR_API_KEY",
-        "model": "antigravity/gemini-3.5-flash-low",
+        "endpoint_url": "",
+        "api_key": "",
+        "model": "",
         "language": "auto",
         "temperature": 0.0,
         "timeout_seconds": 30
     },
     "llm": {
         "provider": "openrouter",
-        "base_url": "https://omniroute.shadin.info/v1",
-        "api_key": "YOUR_API_KEY",
-        "model": "antigravity/gemini-3.5-flash-low",
+        "base_url": "",
+        "api_key": "",
+        "model": "",
         "temperature": 0.3,
         "max_tokens": 1500,
         "timeout_seconds": 30,

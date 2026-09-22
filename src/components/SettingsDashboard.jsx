@@ -133,7 +133,7 @@ export default function SettingsDashboard() {
     const prov = conf?.providers?.[pid] || {};
     setBaseUrl(prov.base_url || '');
     setApiKey(prov.api_key || '');
-    setSelectedModel(prov.model || 'antigravity/gemini-3.5-flash-low');
+    setSelectedModel(prov.model || '');
     setLanguage(prov.language || 'auto');
     setTemperature(conf?.llm?.temperature ?? 0.3);
     setMaxTokens(conf?.llm?.max_tokens ?? 1500);
@@ -478,7 +478,7 @@ export default function SettingsDashboard() {
                   type="text"
                   value={baseUrl}
                   onChange={(e) => setBaseUrl(e.target.value)}
-                  placeholder="https://omniroute.shadin.info/v1"
+                  placeholder="Enter your router's OpenAI-compatible base URL"
                   className="w-full px-3.5 py-2 rounded-xl bg-[#1A1D2F] border border-[#323754] text-white text-xs font-mono focus:outline-none focus:border-violet-500 transition-colors"
                 />
               </div>
