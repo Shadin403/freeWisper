@@ -1,82 +1,71 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-title FreeWispr - Package & Auto-Launch (.exe)
+title FreeWispr - Build Windows Setup Installer
 
 echo =========================================================
-echo    FreeWispr Windows Standalone (.EXE) Builder & Launcher
+echo    FreeWispr Windows Setup Builder
 echo =========================================================
 echo.
 
 where npm >nul 2>&1
 if %errorlevel% neq 0 (
-    echo [ERROR] NPM was not found. Please install Node.js 18+ from https://nodejs.org/
+    echo [ERROR] NPM was not found. Install Node.js 18 or later.
     pause
     exit /b 1
 )
 
-:: Terminate running instances
 echo [1/6] Closing running FreeWispr instances...
 taskkill /f /im "FreeWispr Voice Assistant.exe" >nul 2>&1
 taskkill /f /im "WisprFlow Voice Assistant.exe" >nul 2>&1
 taskkill /f /im electron.exe >nul 2>&1
 timeout /t 1 /nobreak >nul
 
-:: Clean old build artifacts safely
 if exist "dist-electron" rmdir /s /q "dist-electron" >nul 2>&1
 
 echo.
 echo [2/6] Checking Node.js dependencies...
-if not exist "node_modules" (
-    call npm install
-)
+if not exist "node_modules" call npm install
+if %errorlevel% neq 0 goto build_failed
 
 echo.
-echo [3/6] Generating High-Definition Icons...
+echo [3/6] Generating multi-resolution FreeWispr icons...
 call node scripts/build-icons.js
+if %errorlevel% neq 0 goto build_failed
 
 echo.
-echo [4/6] Building Vite React UI...
+echo [4/6] Building the React interface...
 call npm run build
-
-echo.
-echo [5/6] Packaging Standalone Windows .EXE (No Admin or Symlink Privilege Required)...
-call npx electron-builder --win dir -c.win.signAndEditExecutable=false -c.win.icon=build/icon.ico
 if %errorlevel% neq 0 goto build_failed
 
 echo.
-echo [6/6] Applying FreeWispr Icon and Windows Metadata...
-call node scripts/brand-windows-exe.js "dist-electron\win-unpacked\FreeWispr Voice Assistant.exe"
+echo [5/6] Creating the FreeWispr Windows Setup wizard...
+call npx electron-builder --win nsis -c.win.signAndEditExecutable=false
 if %errorlevel% neq 0 goto build_failed
 
-goto build_success
+echo.
+echo [6/6] Applying FreeWispr icon and Windows metadata...
+call node scripts/brand-release-executables.js
+if %errorlevel% neq 0 goto build_failed
 
-:build_success
-if exist "dist-electron\win-unpacked\FreeWispr Voice Assistant.exe" (
-    echo.
-    echo =========================================================
-    echo    SUCCESS: Standalone Windows .EXE Ready!
-    echo.
-    echo    Executable Path:
-    echo    dist-electron\win-unpacked\FreeWispr Voice Assistant.exe
-    echo.
-    echo    🚀 Launching as a standalone independent background process...
-    echo =========================================================
-    echo.
+for %%F in ("dist-electron\FreeWispr-Setup-*.exe") do set "SETUP_FILE=%%~fF"
+if not defined SETUP_FILE goto build_failed
 
-    :: Enable Windows auto-start immediately after a successful build
-    echo    Enabling FreeWispr auto-start on Windows login...
-    call "%~dp0enable_startup.bat" silent
-
-    :: Launch completely detached via Windows Explorer shell (independent of CMD terminal)
-    explorer.exe "%~dp0dist-electron\win-unpacked\FreeWispr Voice Assistant.exe"
-
-    timeout /t 2 /nobreak >nul
-    exit /b 0
-)
+echo.
+echo =========================================================
+echo    SUCCESS: FreeWispr Setup Installer Ready!
+echo.
+echo    %SETUP_FILE%
+echo.
+echo    Upload this Setup EXE to the GitHub Release.
+echo =========================================================
+echo.
+explorer.exe /select,"%SETUP_FILE%"
+pause
+exit /b 0
 
 :build_failed
 echo.
-echo [WARNING] Build encountered an error. Please review the output above.
+echo [ERROR] The FreeWispr Setup build failed. Review the output above.
 pause
 exit /b 1

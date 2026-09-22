@@ -34,8 +34,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   testSTT: (config) => ipcRenderer.invoke('test-stt', config),
   testAI: (config) => ipcRenderer.invoke('test-ai', config),
 
-  // In-App Updater
+  // GitHub Release Updater
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  downloadUpdate: (installer) => ipcRenderer.invoke('download-update', installer),
+  installUpdate: (filePath) => ipcRenderer.invoke('install-update', filePath),
+  openReleasePage: () => ipcRenderer.invoke('open-release-page'),
+  onUpdateDownloadProgress: (callback) => {
+    const handler = (_event, progress) => callback(progress);
+    ipcRenderer.on('update-download-progress', handler);
+    return () => ipcRenderer.removeListener('update-download-progress', handler);
+  },
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
 
   // Auto-Start on Windows Boot

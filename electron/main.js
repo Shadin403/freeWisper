@@ -10,6 +10,7 @@ const storage = require('./db');
 const autoPaster = require('./autoPaste');
 const aiEngine = require('./aiEngine');
 const autoStarter = require('./autoStart');
+const updater = require('./updater');
 
 let widgetWindow = null;
 let settingsWindow = null;
@@ -383,13 +384,19 @@ ipcMain.handle('fetch-models', async (e, { baseUrl, apiKey }) => {
   return await aiEngine.fetchModels(baseUrl, apiKey);
 });
 
-ipcMain.handle('check-for-updates', async () => {
-  return {
-    hasUpdate: false,
-    currentVersion: '1.1.0',
-    latestVersion: '1.1.0',
-    releaseNotes: 'FreeWispr v1.1.0 is running with latest F8 dual-toggle fix, zero-sound mute, and permanent SQLite storage.',
-  };
+ipcMain.handle('check-for-updates', async () => updater.checkForUpdates());
+
+ipcMain.handle('download-update', async (e, installer) => {
+  return await updater.downloadUpdate(installer, e.sender);
+});
+
+ipcMain.handle('install-update', async (e, filePath) => {
+  return await updater.installUpdate(filePath);
+});
+
+ipcMain.handle('open-release-page', async () => {
+  await updater.openReleasePage();
+  return true;
 });
 
 ipcMain.handle('open-external', async (e, url) => {

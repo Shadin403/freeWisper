@@ -53,7 +53,7 @@ npm run build
 npm start
 ```
 
-## Build the Windows Application
+## Build the Windows Setup Installer
 
 Double-click `build_exe.bat`, or run it from Command Prompt:
 
@@ -61,20 +61,34 @@ Double-click `build_exe.bat`, or run it from Command Prompt:
 build_exe.bat
 ```
 
-The build is created at:
+The assisted NSIS installer is created at:
 
 ```text
-dist-electron\win-unpacked\FreeWispr Voice Assistant.exe
+dist-electron\FreeWispr-Setup-<version>-x64.exe
 ```
+
+The installer provides a normal Windows setup wizard, per-user or per-machine installation, an optional installation folder, desktop and Start Menu shortcuts, uninstall support, and an option to run FreeWispr after installation.
 
 The build process performs the following steps:
 
 1. Stops any currently running FreeWispr or development Electron process.
 2. Generates a multi-resolution FreeWispr Windows icon.
 3. Builds the React interface.
-4. Packages the Electron application without requiring Administrator or symbolic-link privileges.
-5. Applies the FreeWispr icon and Windows version metadata using a pure-JavaScript resource editor.
-6. Registers FreeWispr for Windows auto-start and launches the new executable.
+4. Packages the Electron application and assisted NSIS Setup without requiring symbolic-link privileges.
+5. Applies the FreeWispr icon and version metadata to the packaged application executable using a pure-JavaScript resource editor.
+6. Opens Windows Explorer with the Setup file selected so it can be uploaded to GitHub Releases.
+
+## Publishing Updates
+
+Publish each new version as a GitHub Release in `Shadin403/freeWisper`. The in-app updater first checks the release tagged `FreeWispr`, then falls back to the repository's latest published release.
+
+Attach the generated installer using a filename that contains both `FreeWispr` and `Setup`, for example:
+
+```text
+FreeWispr-Setup-1.2.0-x64.exe
+```
+
+For reliable version comparison, include a semantic version such as `1.2.0` in the release title, tag, or release notes. Increase the `version` field in `package.json` before every new build.
 
 ## Windows Auto-Start
 

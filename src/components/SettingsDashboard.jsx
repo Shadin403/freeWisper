@@ -88,6 +88,13 @@ export default function SettingsDashboard() {
   const [historySearch, setHistorySearch] = useState('');
   const [selectedHistoryItem, setSelectedHistoryItem] = useState(null);
 
+  // GitHub Update State
+  const [updateInfo, setUpdateInfo] = useState(null);
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [downloadingUpdate, setDownloadingUpdate] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [downloadedInstallerPath, setDownloadedInstallerPath] = useState('');
+
   // Global Status Banner
   const [statusBanner, setStatusBanner] = useState(null);
 
@@ -127,6 +134,14 @@ export default function SettingsDashboard() {
       }
     }
     load();
+  }, []);
+
+  // Receive installer download progress from the Electron main process
+  useEffect(() => {
+    if (!window.electronAPI?.onUpdateDownloadProgress) return undefined;
+    return window.electronAPI.onUpdateDownloadProgress((progress) => {
+      setDownloadProgress(progress?.percent ?? 0);
+    });
   }, []);
 
   const loadProviderIntoForm = (pid, conf = config) => {
@@ -321,6 +336,58 @@ export default function SettingsDashboard() {
       setAutostartOnBoot(!enabled);
       showBanner(`Auto-start update failed: ${e.message}`, 'error');
     }
+  };
+
+  // GitHub Release Update Actions
+  const handleCheckForUpdates = async () => {
+    if (!window.electronAPI) return;
+    setCheckingUpdate(true);
+    setDownloadedInstallerPath('');
+    setDownloadProgress(0);
+    try {
+      const info = await window.electronAPI.checkForUpdates();
+      setUpdateInfo(info);
+      if (!info.success) {
+        showBanner(`Update check failed: ${info.error}`, 'error');
+      } else if (info.installer && info.hasUpdate) {
+        showBanner(`FreeWispr ${info.latestVersion} is available.`, 'success');
+      } else if (info.installer) {
+        showBanner(`GitHub release ${info.latestVersion} is available to install.`, 'info');
+      } else {
+        showBanner(info.message || 'No Windows Setup file was found in the release.', 'error');
+      }
+    } catch (error) {
+      showBanner(`Update check failed: ${error.message}`, 'error');
+    } finally {
+      setCheckingUpdate(false);
+    }
+  };
+
+  const handleDownloadUpdate = async () => {
+    if (!window.electronAPI || !updateInfo?.installer) return;
+    setDownloadingUpdate(true);
+    setDownloadProgress(0);
+    try {
+      const result = await window.electronAPI.downloadUpdate(updateInfo.installer);
+      if (result.success) {
+        setDownloadedInstallerPath(result.filePath);
+        setDownloadProgress(100);
+        showBanner('✅ Update downloaded. Click Install Update to continue.', 'success');
+      } else {
+        showBanner(`Download failed: ${result.error}`, 'error');
+      }
+    } catch (error) {
+      showBanner(`Download failed: ${error.message}`, 'error');
+    } finally {
+      setDownloadingUpdate(false);
+    }
+  };
+
+  const handleInstallUpdate = async () => {
+    if (!window.electronAPI || !downloadedInstallerPath) return;
+    showBanner('Opening FreeWispr Setup. The app will close automatically...', 'info');
+    const result = await window.electronAPI.installUpdate(downloadedInstallerPath);
+    if (!result.success) showBanner(`Installer failed: ${result.error}`, 'error');
   };
 
   // Save All Settings
@@ -933,48 +1000,107 @@ export default function SettingsDashboard() {
               </div>
 
               <p className="text-xs text-[#CBD5E1] leading-relaxed">
-                উইন্ডোজের জন্য আধুনিক FreeWispr ভয়েস টাইপিং ও এআই সামারাইজার। এটি যেকোনো সক্রিয় অ্যাপে সরাসরি টেক্সট
-                পেস্ট করে দিতে পারে এবং OmniRoute, OpenRouter, Groq ও OpenAI এর সাথে সংযুক্ত হতে পারে।
+                A modern Windows voice-typing and AI writing assistant that can paste polished text directly into the active application and connect to OpenRouter, Groq, OpenAI, OmniRoute, or a custom router.
               </p>
             </div>
 
-            {/* Updates Section */}
-            <div className="p-5 rounded-2xl bg-[#131522] border border-[#25283D] flex items-center justify-between">
-              <div>
-                <h4 className="text-xs font-bold text-white flex items-center gap-2">
-                  <Check size={14} className="text-emerald-400" />
-                  Your software is running the latest Electron + React Build (v1.1.0)
-                </h4>
-                <p className="text-[11px] text-[#8E98B0] mt-0.5">
-                  ভবিষ্যতে কোনো নতুন রিলিজ বা আপডেট আসলে এখানে স্বয়ংক্রিয়ভাবে নোটিফিকেশন আসবে।
-                </p>
+            {/* GitHub Release Updates */}
+            <div className="p-5 rounded-2xl bg-[#131522] border border-[#25283D] space-y-3.5">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h4 className="text-xs font-bold text-white flex items-center gap-2">
+                    {updateInfo?.success && updateInfo.installer ? (
+                      <Download size={14} className="text-violet-400" />
+                    ) : (
+                      <Check size={14} className="text-emerald-400" />
+                    )}
+                    {updateInfo?.success
+                      ? updateInfo.installer
+                        ? `GitHub Release: ${updateInfo.latestVersion}`
+                        : 'No Windows Setup asset found'
+                      : 'Check for FreeWispr updates on GitHub'}
+                  </h4>
+                  <p className="text-[11px] text-[#8E98B0] mt-1">
+                    Current version: {updateInfo?.currentVersion || '1.1.0'} · Source: Shadin403/freeWisper
+                  </p>
+                </div>
+
+                <button
+                  onClick={handleCheckForUpdates}
+                  disabled={checkingUpdate || downloadingUpdate}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#1C1F33] hover:bg-[#282D4A] disabled:opacity-50 text-xs font-bold text-violet-300 border border-[#2B2E48] transition-colors"
+                >
+                  <RefreshCw size={12} className={checkingUpdate ? 'animate-spin' : ''} />
+                  {checkingUpdate ? 'Checking...' : 'Check for Updates'}
+                </button>
               </div>
 
-              <button
-                onClick={async () => {
-                  showBanner('Checking for updates...', 'info');
-                  if (window.electronAPI) {
-                    const info = await window.electronAPI.checkForUpdates();
-                    showBanner(`✅ App is up to date! (v${info.latestVersion})`, 'success');
-                  }
-                }}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#1C1F33] hover:bg-[#282D4A] text-xs font-bold text-violet-300 border border-[#2B2E48] transition-colors"
-              >
-                <RefreshCw size={12} /> Check for Updates
-              </button>
+              {updateInfo && (
+                <div className="p-3 rounded-xl bg-[#0F111C] border border-[#25283D] space-y-2.5">
+                  <p className={`text-xs font-semibold ${updateInfo.success ? 'text-[#CBD5E1]' : 'text-rose-400'}`}>
+                    {updateInfo.success ? updateInfo.message : updateInfo.error}
+                  </p>
+
+                  {updateInfo.releaseName && (
+                    <p className="text-[11px] text-[#8E98B0]">{updateInfo.releaseName}</p>
+                  )}
+
+                  {downloadingUpdate && (
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-[10px] text-[#8E98B0]">
+                        <span>Downloading Windows Setup...</span>
+                        <span>{downloadProgress}%</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-[#1A1D2F] overflow-hidden">
+                        <div
+                          className="h-full bg-violet-500 transition-all duration-200"
+                          style={{ width: `${downloadProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap gap-2">
+                    {updateInfo.installer && !downloadedInstallerPath && (
+                      <button
+                        onClick={handleDownloadUpdate}
+                        disabled={downloadingUpdate}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-xs font-bold text-white"
+                      >
+                        <Download size={12} />
+                        {downloadingUpdate ? `Downloading ${downloadProgress}%` : 'Download Update'}
+                      </button>
+                    )}
+                    {downloadedInstallerPath && (
+                      <button
+                        onClick={handleInstallUpdate}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white"
+                      >
+                        <Download size={12} /> Install Update
+                      </button>
+                    )}
+                    <button
+                      onClick={() => window.electronAPI?.openReleasePage()}
+                      className="px-3 py-1.5 rounded-lg bg-[#202338] hover:bg-[#2D3252] text-xs font-semibold text-violet-300 border border-violet-500/20"
+                    >
+                      Open GitHub Release
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* What's New in v1.1.0 */}
+            {/* What's New */}
             <div className="p-5 rounded-2xl bg-[#131522] border border-[#25283D] space-y-2.5">
               <h4 className="text-xs font-bold text-violet-300 flex items-center gap-1.5">
-                <Sparkles size={13} /> What's New in Version 1.1.0:
+                <Sparkles size={13} /> What's New in FreeWispr 1.1.0
               </h4>
               <ul className="text-[11px] text-[#94A3B8] space-y-1.5 pl-4 list-disc">
-                <li><span className="text-[#E2E8F0] font-semibold">F8 Double-Press Toggle:</span> ১ম বার F8 চাপলে স্টার্ট ও ২য় বার চাপলে ফিনিশ ও অটো-পেস্ট।</li>
-                <li><span className="text-[#E2E8F0] font-semibold">Volume Control & Mute:</span> সাউন্ড ভলিউম ০% থেকে ১০০% নিয়ন্ত্রণের সুবিধা।</li>
-                <li><span className="text-[#E2E8F0] font-semibold">Permanent SQLite DB:</span> পিসি রিস্টার্টেও API Key ও সেটিংস ১০০% সেভ থাকবে।</li>
-                <li><span className="text-[#E2E8F0] font-semibold">Live Model Search:</span> সার্ভার মডেল ফিল্টারের জন্য রিয়েল-টাইম সার্চবার।</li>
-                <li><span className="text-[#E2E8F0] font-semibold">API Key Eye Toggle:</span> পাসওয়ার্ডের মতো কি দেখার এবং লুকানোর সুবিধা।</li>
+                <li><span className="text-[#E2E8F0] font-semibold">F8 Voice Toggle:</span> press once to start and again to process and paste.</li>
+                <li><span className="text-[#E2E8F0] font-semibold">Smart Polish:</span> preserves Bengali, English, or natural mixed Banglish.</li>
+                <li><span className="text-[#E2E8F0] font-semibold">Windows Setup:</span> guided installer with shortcuts, uninstall support, and installation folder selection.</li>
+                <li><span className="text-[#E2E8F0] font-semibold">GitHub Updates:</span> check, download, and launch the latest Setup directly from the app.</li>
+                <li><span className="text-[#E2E8F0] font-semibold">Auto-Start:</span> optionally launch FreeWispr after Windows sign-in.</li>
               </ul>
             </div>
           </div>

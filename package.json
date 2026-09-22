@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "start": "electron .",
     "app": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
-    "dist": "vite build && electron-builder --win dir -c.win.signAndEditExecutable=false && node scripts/brand-windows-exe.js \"dist-electron/win-unpacked/FreeWispr Voice Assistant.exe\""
+    "dist": "vite build && electron-builder --win nsis -c.win.signAndEditExecutable=false && node scripts/brand-release-executables.js"
   },
   "keywords": [
     "freewispr",
@@ -58,9 +58,35 @@
     },
     "win": {
       "icon": "build/icon.ico",
-      "target": "dir",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
       "signAndEditExecutable": false,
       "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "FreeWispr Voice Assistant",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico",
+      "artifactName": "FreeWispr-Setup-${version}-${arch}.${ext}"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "Shadin403",
+      "repo": "freeWisper",
+      "releaseType": "release"
     },
     "files": [
       "dist/**/*",
