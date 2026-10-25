@@ -9,8 +9,8 @@ echo    Repo: Shadin403/freeWisper   Tag: FreeWispr
 echo =========================================================
 echo.
 
-set "OLD_ASSET=FreeWispr.Voice.Assistant.exe"
-set "NEW_ASSET=FreeWispr-Setup-1.1.0-x64.exe"
+set "OLD_ASSET=FreeWispr-Setup-1.1.0-x64.exe"
+set "NEW_ASSET=FreeWispr-Setup-1.2.0-x64.exe"
 set "SETUP_FILE=dist-electron\%NEW_ASSET%"
 
 if not exist "%SETUP_FILE%" goto missing_file
