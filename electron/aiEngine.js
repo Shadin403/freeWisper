@@ -65,6 +65,7 @@ class AIEngine {
       temperature = 0.2,
       maxTokens = 600,
       timeout = 40000,
+      outputLanguage = 'auto',
     } = options;
 
     if (!base64Audio) {
@@ -85,7 +86,7 @@ class AIEngine {
 
     // 1. SINGLE-PASS DIRECT POLISH (Gemini Multimodal)
     if (isGeminiOrMultimodal) {
-      return this._processDirectMultimodal(base64Audio, preset, baseUrl, apiKey, model, language, temperature, maxTokens, timeout);
+      return this._processDirectMultimodal(base64Audio, preset, baseUrl, apiKey, model, language, temperature, maxTokens, timeout, outputLanguage);
     }
 
     // 2. TWO-PASS PIPELINE (Whisper STT -> LLM Refinement)
@@ -95,7 +96,7 @@ class AIEngine {
     }
 
     const rawText = sttRes.text;
-    const aiRes = await this.refineText(rawText, preset, options);
+    const aiRes = await this.refineText(rawText, preset, { ...options, outputLanguage });
     return {
       success: true,
       rawText,
@@ -107,7 +108,7 @@ class AIEngine {
   /**
    * Single-Pass Direct Multimodal Polish (Fastest Method)
    */
-  async _processDirectMultimodal(base64Audio, preset, baseUrl, apiKey, model, language, temperature, maxTokens, timeout) {
+  async _processDirectMultimodal(base64Audio, preset, baseUrl, apiKey, model, language, temperature, maxTokens, timeout, outputLanguage = 'auto') {
     let endpoint = baseUrl.trim().replace(/\/$/, '');
     if (endpoint.includes('/audio/transcriptions')) {
       endpoint = endpoint.replace('/audio/transcriptions', '/chat/completions');
@@ -122,11 +123,26 @@ class AIEngine {
     let taskInstruction = '';
     if (presetId === 'raw' || !presetPrompt) {
       taskInstruction = 'Transcribe all spoken words verbatim without modifications.';
-    } else {
+    } else if (presetId === 'smart_polish') {
       taskInstruction =
         'Listen to the spoken speech and apply this transformation.\n' +
         'ABSOLUTE LANGUAGE RULE: The output MUST stay in the SAME language as the speech — Bengali speech → Bengali output, English speech → English output, mixed Banglish → natural Banglish. NEVER translate to another language.\n' +
         `Transformation:\n${presetPrompt}`;
+    } else if (presetId === 'prompt_engineer') {
+      const langMap = {
+        'auto': 'Auto (infer from spoken task)',
+        'bn': 'Bengali (বাংলা)',
+        'en': 'English',
+      };
+      const langLabel = langMap[outputLanguage] || 'Auto (infer from spoken task)';
+      taskInstruction =
+        'Listen to the spoken speech and apply this transformation to generate a structured AI prompt.\n' +
+        `The generated prompt should be in: ${langLabel}.\n` +
+        `Transformation:\n${presetPrompt}`;
+    } else {
+      taskInstruction =
+        'Listen to the spoken speech and apply this transformation:\n' +
+        `${presetPrompt}`;
     }
 
     const systemPrompt =
@@ -276,6 +292,7 @@ class AIEngine {
       temperature = 0.2,
       maxTokens = 600,
       timeout = 30000,
+      outputLanguage = 'auto',
     } = options;
 
     let endpoint = baseUrl.trim().replace(/\/$/, '');
@@ -283,7 +300,18 @@ class AIEngine {
       endpoint = `${endpoint}/chat/completions`;
     }
 
-    const userPrompt = userTemplate.replace('{transcription}', transcription.trim());
+    let userPrompt = userTemplate.replace('{transcription}', transcription.trim());
+
+    // Handle output_language for prompt_engineer preset
+    if (presetId === 'prompt_engineer') {
+      const langMap = {
+        'auto': 'Auto (infer from spoken task)',
+        'bn': 'Bengali (বাংলা)',
+        'en': 'English',
+      };
+      const langLabel = langMap[outputLanguage] || 'Auto (infer from spoken task)';
+      userPrompt = userPrompt.replace('{output_language}', langLabel);
+    }
 
     const headers = {
       'Content-Type': 'application/json',
@@ -450,6 +478,115 @@ class AIEngine {
     } catch (err) {
       const errMsg = err.response?.data?.error?.message || err.message || 'Failed to fetch models';
       return { success: false, models: [], error: errMsg };
+    }
+  }
+
+  /**
+   * Conversational AI Chat Assistant (mode-aware)
+   * Chats with the user while adapting its personality, language, and formatting
+   * to match the currently selected active preset mode!
+   */
+  async chatWithAI(conversationHistory = [], preset = {}, options = {}) {
+    if (!Array.isArray(conversationHistory) || conversationHistory.length === 0) {
+      return { success: false, text: '', error: 'No message provided' };
+    }
+
+    const {
+      baseUrl = '',
+      apiKey = '',
+      model = '',
+      temperature = 0.4,
+      maxTokens = 1200,
+      timeout = 40000,
+    } = options;
+
+    if (!baseUrl || !baseUrl.trim()) {
+      return { success: false, text: '', error: 'Please configure an API Base URL in FreeWispr Settings.' };
+    }
+    if (!model || !model.trim()) {
+      return { success: false, text: '', error: 'Please select or configure an AI Model in FreeWispr Settings.' };
+    }
+
+    let endpoint = baseUrl.trim().replace(/\/$/, '');
+    if (endpoint.includes('/audio/transcriptions')) {
+      endpoint = endpoint.replace('/audio/transcriptions', '/chat/completions');
+    } else if (!endpoint.endsWith('/chat/completions')) {
+      endpoint = `${endpoint}/chat/completions`;
+    }
+
+    const presetId = preset?.id || 'smart_polish';
+    const presetName = preset?.name || 'Smart Polish';
+    const presetPrompt = preset?.system_prompt || '';
+
+    let modeInstruction = '';
+    if (presetId === 'bn_to_banglish') {
+      modeInstruction =
+        'You are FreeWispr AI, an intelligent, friendly conversational assistant.\n' +
+        'CRITICAL BANGLISH CHAT RULE:\n' +
+        '1. You MUST ALWAYS converse, answer, and explain in modern, natural Banglish (Bengali words written using the English alphabet / Roman script), exactly how young Bengali professionals and tech users chat on WhatsApp and Messenger (e.g. "Ami thik achi! Apnake kivabe help korte pari?", "Ei problem ta solve korte hole ei code ta use korun...").\n' +
+        '2. Keep all technical terms, code, numbers, and naturally mixed English words in standard English (e.g. "React", "Node.js", "API", "bug", "terminal", "login").\n' +
+        '3. If the user asks you to write, summarize, or translate something, provide the response in clean, fluent Banglish.\n' +
+        '4. Be helpful, concise, well-formatted, and accurate.';
+    } else if (presetId === 'smart_polish') {
+      modeInstruction =
+        'You are FreeWispr AI, an intelligent and polite conversational writing assistant.\n' +
+        'LANGUAGE RULE: Always reply in the SAME language the user speaks or writes to you (Bengali input -> beautiful polished Bengali output; English input -> fluent English output; Banglish -> natural Banglish).\n' +
+        'Keep your writing well-punctuated, grammatically clean, and beautifully structured.';
+    } else if (presetId === 'bn_to_en') {
+      modeInstruction =
+        'You are FreeWispr AI, a professional bilingual assistant and English editor.\n' +
+        'CRITICAL RULE: Always reply in fluent, natural, professional English. If the user asks in Bengali or Banglish, answer or translate their thoughts into high-quality professional English.';
+    } else if (presetId === 'summary') {
+      modeInstruction =
+        'You are FreeWispr AI, an executive summary and analysis assistant.\n' +
+        'CRITICAL RULE: Give structured, crisp answers with bullet points, key takeaways, and action items in the same language as the user query.';
+    } else if (presetId === 'email') {
+      modeInstruction =
+        'You are FreeWispr AI, a professional business communication specialist.\n' +
+        'CRITICAL RULE: Help draft, polish, and answer inquiries formatted as clean, polite business emails or messages with greetings, body paragraphs, and professional sign-offs in the user\'s language.';
+    } else if (presetId === 'dev_notes') {
+      modeInstruction =
+        'You are FreeWispr AI, a senior software engineer assistant.\n' +
+        'CRITICAL RULE: Provide accurate developer notes, markdown checklists (- [ ]), and code snippets in proper fenced code blocks with language tags.';
+    } else {
+      modeInstruction =
+        `You are FreeWispr AI Assistant operating in "${presetName}" mode.\n` +
+        (presetPrompt ? `Follow this mode guidance:\n${presetPrompt}\n` : '') +
+        'Be concise, helpful, and polite.';
+    }
+
+    const messages = [
+      { role: 'system', content: modeInstruction },
+      ...conversationHistory.map((m) => ({
+        role: m.role === 'user' ? 'user' : 'assistant',
+        content: m.content || '',
+      })),
+    ];
+
+    const payload = {
+      model: model.trim(),
+      messages,
+      temperature: parseFloat(temperature) || 0.4,
+      max_tokens: parseInt(maxTokens) || 1200,
+    };
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'HTTP-Referer': 'https://github.com/freewispr/windows-voice-assistant',
+      'X-Title': 'FreeWispr Voice Assistant',
+    };
+    if (apiKey && apiKey.trim()) {
+      headers['Authorization'] = `Bearer ${apiKey.trim()}`;
+    }
+
+    try {
+      const res = await axios.post(endpoint, payload, { headers, timeout });
+      let output = res.data?.choices?.[0]?.message?.content || '';
+      output = output.trim();
+      return { success: true, text: output, error: null };
+    } catch (err) {
+      const errMsg = err.response?.data?.error?.message || err.message || 'Chat request failed';
+      return { success: false, text: '', error: errMsg };
     }
   }
 }

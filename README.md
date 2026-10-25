@@ -9,9 +9,11 @@ It is built with Electron, React, Vite, Tailwind CSS, and Node.js.
 - **Global voice typing:** Press `F8` from almost any Windows application to start or stop recording.
 - **Direct auto-paste:** The processed text is pasted into the active input field in Chrome, Microsoft Word, VS Code, Notepad, Slack, and other applications.
 - **Same-language Smart Polish:** Bengali remains Bengali, English remains English, and mixed Banglish remains natural Banglish. The assistant removes filler words and obvious repetitions without changing your meaning or writing style.
+- **Prompt Engineer (Smart Prompt) mode:** Transform spoken task descriptions into structured, professional AI prompts ready for Claude Code, ChatGPT, Gemini, Antigravity, and other coding agents. Simply describe what you want to accomplish — FreeWispr generates a well-organized prompt with role, context, requirements, workflow, constraints, and verification criteria.
+- **Output language control:** Choose Auto (infer from your speech), Bengali, or English for generated prompts. Auto defaults to English for technical/coding tasks.
 - **Multiple AI and speech providers:** Use OmniRoute, OpenRouter, Groq, OpenAI, or your own compatible router endpoint.
 - **Gemini multimodal single-pass mode:** Compatible multimodal models can transcribe and polish audio in one request for lower latency.
-- **Reusable writing modes:** Smart Polish, Executive Summary, Bengali-to-English Translation, Professional Email, Developer Notes, and Raw Transcription.
+- **Reusable writing modes:** Smart Polish, Executive Summary, Bengali-to-English Translation, Bangla to Banglish (Smart Polish), Professional Email, Developer Notes, Prompt Engineer, and Raw Transcription.
 - **Floating widget:** A compact, draggable, always-on-top microphone control with recording status and audio visualization.
 - **Persistent settings:** Provider settings, prompts, keyboard shortcuts, and UI preferences are saved between sessions.
 - **Windows auto-start:** FreeWispr can launch automatically after you sign in to Windows.
@@ -131,6 +133,73 @@ Smart Polish is intentionally light-touch. It is designed to:
 - preserve technical terms, names, numbers, tone, and meaning;
 - avoid translating unless a translation mode is selected;
 - return only the final text, without commentary or a preamble.
+
+## Prompt Engineer (Smart Prompt) Mode
+
+The Prompt Engineer mode transforms your spoken task descriptions into structured, professional AI prompts that you can use with any AI assistant (Claude Code, ChatGPT, Gemini, Antigravity, coding agents, etc.).
+
+### How It Works
+
+1. **Select the mode:** In the Control Center → Prompts & Modes, select **Prompt Engineer (Smart Prompt)** 🧠
+2. **Set output language (optional):** Choose Auto (default), Bengali, or English. Auto infers the language from your speech — technical/coding tasks default to English.
+3. **Record your task:** Press `F8`, describe your task naturally in Bengali, English, or mixed Banglish, then press `F8` again.
+4. **Paste and use:** The generated prompt is automatically pasted into your active text field. Copy it into your target AI assistant.
+
+### Example
+
+**Spoken (Banglish):**
+> "Amar Laravel website slow. Age root cause ber korbe, database query ar cache check korbe, tarpor safe fix korbe, before after test korbe. Production data jeno damage na hoy."
+
+**Generated Prompt (English):**
+```markdown
+# Role
+Senior Laravel Performance Engineer
+
+# Context
+- Project: Laravel web application experiencing performance degradation
+- Environment: Production (safety critical — no data loss acceptable)
+
+# Objective
+Identify root causes of slowness and implement safe optimizations with measurable before/after verification
+
+# Requirements
+1. Investigate and document root causes (database queries, caching, N+1 problems, etc.)
+2. Propose safe optimizations that do not risk production data integrity
+3. Implement fixes with minimal, focused changes
+4. Verify improvements with before/after performance benchmarks
+
+# Constraints
+- Production data must not be damaged or modified unsafely
+- Changes must be minimal and reversible
+- All database operations must be safe (read-only analysis preferred, transactions for writes)
+
+# Verification
+- Query execution time improvements documented
+- Page load time comparison (before vs after)
+- No regression in functionality
+- Production data integrity confirmed
+```
+
+### Language Options
+
+| Setting | Behavior |
+|---------|----------|
+| **Auto** (default) | Infers from speech. Technical/coding tasks → English; conversational Bengali → Bengali prompt; mixed → English for technical tasks. |
+| **Bengali** | Generates the complete prompt in natural Bengali, keeping standard technical terms in English. |
+| **English** | Generates a professional English prompt even when input is Bengali or Banglish. |
+
+### Task Categories (Auto-Detected)
+
+The AI automatically structures the prompt based on what you describe:
+
+- **Software Development / Coding** — repo inspection, architecture understanding, minimal changes, safety, testing
+- **Debugging / Root Cause Analysis** — investigation steps, hypotheses, verification
+- **Code Review / Refactoring** — existing patterns, safety, incremental changes
+- **Performance Optimization** — measurement, profiling, before/after comparison
+- **UI/UX Design** — layout, responsiveness, accessibility, design systems
+- **Writing / Email / Communication** — audience, tone, format, purpose
+- **Research / Analysis** — sources, evidence, citations, uncertainty
+- **General Tasks** — appropriate structure for the request
 
 ## Troubleshooting
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import FloatingWidget from './components/FloatingWidget';
 import SettingsDashboard from './components/SettingsDashboard';
+import ChatWidget from './components/ChatWidget';
 
 export default function App() {
   const [view, setView] = useState('widget');
@@ -13,6 +14,9 @@ export default function App() {
     if (viewParam === 'settings') {
       setView('settings');
       document.body.style.background = '#0B0C13';
+    } else if (viewParam === 'chat') {
+      setView('chat');
+      document.body.style.background = 'transparent';
     } else {
       setView('widget');
       document.body.style.background = 'transparent';
@@ -21,7 +25,13 @@ export default function App() {
 
   return (
     <div className="w-full h-full">
-      {view === 'settings' ? <SettingsDashboard /> : <FloatingWidget />}
+      {view === 'settings' ? (
+        <SettingsDashboard />
+      ) : view === 'chat' ? (
+        <ChatWidget />
+      ) : (
+        <FloatingWidget />
+      )}
     </div>
   );
 }

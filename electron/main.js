@@ -3,7 +3,7 @@
  * Handles system permissions, floating widget, settings window, and IPC pipeline.
  */
 
-const { app, BrowserWindow, ipcMain, globalShortcut, Tray, Menu, screen, nativeImage, session } = require('electron');
+const { app, BrowserWindow, ipcMain, globalShortcut, Tray, Menu, screen, nativeImage, session, powerMonitor } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const storage = require('./db');
@@ -14,7 +14,9 @@ const updater = require('./updater');
 
 let widgetWindow = null;
 let settingsWindow = null;
+let chatWindow = null;
 let tray = null;
+let widgetWatchdog = null;
 
 // Set application identity BEFORE any window is created. This controls the
 // Windows taskbar title, jump-list name, notifications and icon grouping.
@@ -40,10 +42,55 @@ function showOrRestoreWidget() {
     createWidgetWindow();
     return;
   }
-  if (widgetWindow.isMinimized()) widgetWindow.restore();
-  widgetWindow.show();
-  widgetWindow.setAlwaysOnTop(true, 'screen-saver');
-  widgetWindow.focus();
+  try {
+    if (widgetWindow.isMinimized()) widgetWindow.restore();
+    widgetWindow.show();
+    widgetWindow.setAlwaysOnTop(true, 'screen-saver');
+    widgetWindow.setVisibleOnAllWorkspaces(true);
+
+    // Sanity check coordinates so it never hides off-screen
+    const [curX, curY] = widgetWindow.getPosition();
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const { width: screenW, height: screenH } = primaryDisplay.workAreaSize;
+    if (curX < 0 || curX > screenW - 60 || curY < 0 || curY > screenH - 40) {
+      const width = widgetWindow.getBounds().width || 280;
+      widgetWindow.setPosition(Math.round((screenW - width) / 2), Math.round(screenH - 100));
+    }
+  } catch (err) {
+    console.error('showOrRestoreWidget error:', err);
+    createWidgetWindow();
+  }
+}
+
+function startWidgetWatchdog() {
+  if (widgetWatchdog) clearInterval(widgetWatchdog);
+  widgetWatchdog = setInterval(() => {
+    if (app.isQuitting) return;
+    if (!widgetWindow || widgetWindow.isDestroyed()) {
+      createWidgetWindow();
+      return;
+    }
+    try {
+      if (!widgetWindow.isVisible()) {
+        widgetWindow.show();
+      }
+      if (widgetWindow.isMinimized()) {
+        widgetWindow.restore();
+      }
+      if (!widgetWindow.isAlwaysOnTop()) {
+        widgetWindow.setAlwaysOnTop(true, 'screen-saver');
+      }
+      const [curX, curY] = widgetWindow.getPosition();
+      const primaryDisplay = screen.getPrimaryDisplay();
+      const { width: screenW, height: screenH } = primaryDisplay.workAreaSize;
+      if (curX < -50 || curX > screenW || curY < -30 || curY > screenH) {
+        const width = widgetWindow.getBounds().width || 280;
+        widgetWindow.setPosition(Math.round((screenW - width) / 2), Math.round(screenH - 100));
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, 3500);
 }
 
 function loadView(windowInstance, viewName) {
@@ -99,16 +146,16 @@ function createWidgetWindow() {
   widgetWindow.setAlwaysOnTop(true, 'screen-saver');
   widgetWindow.setVisibleOnAllWorkspaces(true);
 
-  // Prevent the widget from being accidentally hidden / closed:
-  // Close events are intercepted and turned into a hide+relaunch-safe state.
+  // Prevent the widget from ever being hidden or closed unintentionally
   widgetWindow.on('close', (e) => {
     if (!app.isQuitting) {
       e.preventDefault();
-      widgetWindow.hide();
+      widgetWindow.show();
+      widgetWindow.setAlwaysOnTop(true, 'screen-saver');
     }
   });
 
-  // If Windows minimized it (Win+D / Show Desktop), snap it back on top
+  // If Windows minimized it (Win+D / Show Desktop), snap it back on top immediately
   widgetWindow.on('minimize', (e) => {
     e.preventDefault();
     if (widgetWindow && !widgetWindow.isDestroyed()) {
@@ -118,36 +165,104 @@ function createWidgetWindow() {
     }
   });
 
-  // Periodic watchdog: re-assert always-on-top & visibility every 10s
-  widgetWindow.watchdog = setInterval(() => {
-    if (!widgetWindow || widgetWindow.isDestroyed()) return;
-    if (!widgetWindow.isVisible()) {
-      widgetWindow.show();
+  // Auto-reload if the WebContents render process ever crashes or unloads
+  widgetWindow.webContents.on('render-process-gone', (event, details) => {
+    console.warn('Widget render process gone, reloading view:', details);
+    if (widgetWindow && !widgetWindow.isDestroyed()) {
+      loadView(widgetWindow, 'widget');
     }
-    if (!widgetWindow.isAlwaysOnTop()) {
-      widgetWindow.setAlwaysOnTop(true, 'screen-saver');
-    }
-  }, 10000);
+  });
 
   loadView(widgetWindow, 'widget');
 
   widgetWindow.on('moved', () => {
-    if (widgetWindow) {
+    if (widgetWindow && !widgetWindow.isDestroyed()) {
       const [newX, newY] = widgetWindow.getPosition();
-      storage.updateConfig({
-        ui: {
-          ...storage.getConfig().ui,
-          pill_position_x: newX,
-          pill_position_y: newY,
-        },
-      });
+      const primaryDisplay = screen.getPrimaryDisplay();
+      const { width: screenW, height: screenH } = primaryDisplay.workAreaSize;
+      // Only persist coordinates if they are cleanly on-screen
+      if (newX >= 0 && newX <= screenW - 80 && newY >= 0 && newY <= screenH - 40) {
+        storage.updateConfig({
+          ui: {
+            ...storage.getConfig().ui,
+            pill_position_x: newX,
+            pill_position_y: newY,
+          },
+        });
+      }
     }
   });
 
   widgetWindow.on('closed', () => {
-    if (widgetWindow && widgetWindow.watchdog) clearInterval(widgetWindow.watchdog);
     widgetWindow = null;
   });
+}
+
+function openChatWindow() {
+  if (chatWindow && !chatWindow.isDestroyed()) {
+    if (chatWindow.isMinimized()) chatWindow.restore();
+    chatWindow.show();
+    chatWindow.focus();
+    return;
+  }
+
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const { width: screenW, height: screenH } = primaryDisplay.workAreaSize;
+  const width = 430;
+  const height = 620;
+
+  let x = screenW - width - 40;
+  let y = Math.max(40, screenH - height - 80);
+
+  if (widgetWindow && !widgetWindow.isDestroyed()) {
+    const [wX, wY] = widgetWindow.getPosition();
+    const wBounds = widgetWindow.getBounds();
+    x = Math.round(wX + (wBounds.width - width) / 2);
+    y = Math.round(wY - height - 16);
+    x = Math.max(16, Math.min(x, screenW - width - 16));
+    if (y < 20) {
+      y = Math.max(20, Math.min(wY + wBounds.height + 16, screenH - height - 20));
+    }
+  }
+
+  const iconPath = path.join(__dirname, 'icon.png');
+
+  chatWindow = new BrowserWindow({
+    width,
+    height,
+    minWidth: 350,
+    minHeight: 460,
+    x,
+    y,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    skipTaskbar: false,
+    resizable: true,
+    hasShadow: true,
+    icon: iconPath,
+    backgroundColor: '#0B0C13',
+    title: 'FreeWispr AI Chat',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+  });
+
+  loadView(chatWindow, 'chat');
+
+  chatWindow.on('closed', () => {
+    chatWindow = null;
+  });
+}
+
+function toggleChatWindow() {
+  if (chatWindow && !chatWindow.isDestroyed() && chatWindow.isVisible()) {
+    chatWindow.close();
+  } else {
+    openChatWindow();
+  }
 }
 
 function openSettingsWindow() {
@@ -220,6 +335,10 @@ function createTray() {
     }));
 
     const contextMenu = Menu.buildFromTemplate([
+      {
+        label: '💬 Open AI Chat',
+        click: () => openChatWindow(),
+      },
       {
         label: '🎙️ Toggle Voice Typing',
         click: () => {
@@ -327,13 +446,17 @@ ipcMain.handle('close-settings', () => {
 });
 
 ipcMain.handle('set-widget-size', (e, { width, height }) => {
-  if (widgetWindow) {
+  if (widgetWindow && !widgetWindow.isDestroyed()) {
     const [curX, curY] = widgetWindow.getPosition();
     const curWidth = widgetWindow.getBounds().width;
     const dx = Math.round((curWidth - width) / 2);
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const { width: screenW, height: screenH } = primaryDisplay.workAreaSize;
+    const targetX = Math.max(10, Math.min(curX + dx, screenW - width - 10));
+    const targetY = Math.max(10, Math.min(curY, screenH - height - 10));
     widgetWindow.setBounds({
-      x: curX + dx,
-      y: curY,
+      x: targetX,
+      y: targetY,
       width,
       height,
     });
@@ -394,6 +517,26 @@ ipcMain.handle('install-update', async (e, filePath) => {
   return await updater.installUpdate(filePath);
 });
 
+ipcMain.handle('open-chat', () => openChatWindow());
+ipcMain.handle('close-chat', () => {
+  if (chatWindow && !chatWindow.isDestroyed()) chatWindow.close();
+});
+ipcMain.handle('toggle-chat', () => toggleChatWindow());
+ipcMain.handle('chat-message', async (e, { messages, presetId }) => {
+  const config = storage.getConfig();
+  const activeProviderId = config.active_provider || 'omniroute';
+  const providerConfig = config.providers?.[activeProviderId] || {};
+  const preset = config.presets?.find((p) => p.id === (presetId || config.active_preset_id)) || config.presets?.[0];
+
+  return await aiEngine.chatWithAI(messages, preset, {
+    baseUrl: providerConfig.base_url,
+    apiKey: providerConfig.api_key,
+    model: providerConfig.model,
+    temperature: config.llm?.temperature ?? 0.4,
+    maxTokens: config.llm?.max_tokens ?? 1500,
+  });
+});
+
 ipcMain.handle('open-release-page', async () => {
   await updater.openReleasePage();
   return true;
@@ -419,6 +562,19 @@ app.whenReady().then(() => {
   createTray();
   registerGlobalHotkeys();
 
+  // Start persistent watchdog to ensure widget never disappears
+  startWidgetWatchdog();
+
+  // Re-assert widget visibility and on-top status when waking from sleep or unlocking
+  if (powerMonitor) {
+    powerMonitor.on('resume', () => {
+      setTimeout(() => showOrRestoreWidget(), 1000);
+    });
+    powerMonitor.on('unlock-screen', () => {
+      setTimeout(() => showOrRestoreWidget(), 1000);
+    });
+  }
+
   // Ensure Auto-Start on Windows Boot is active if configured (default true)
   const initialConfig = storage.getConfig();
   if (initialConfig.ui?.autostart_on_boot !== false) {
@@ -437,8 +593,8 @@ app.on('before-quit', () => {
 });
 
 app.on('will-quit', () => {
-  if (widgetWindow && !widgetWindow.isDestroyed() && widgetWindow.watchdog) {
-    clearInterval(widgetWindow.watchdog);
+  if (widgetWatchdog) {
+    clearInterval(widgetWatchdog);
   }
   globalShortcut.unregisterAll();
 });

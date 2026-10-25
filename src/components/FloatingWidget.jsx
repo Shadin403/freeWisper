@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, Settings, ChevronLeft, ChevronRight, Check, X, Loader2, AlertCircle, GripVertical } from 'lucide-react';
+import { Mic, Settings, ChevronLeft, ChevronRight, Check, X, Loader2, AlertCircle, GripVertical, MessageSquare } from 'lucide-react';
 import { AudioRecorder } from '../utils/audioRecorder';
 import { soundFx } from '../utils/soundEffects';
 
@@ -51,7 +51,7 @@ export default function FloatingWidget() {
   // Update window size when state or collapse changes
   useEffect(() => {
     if (!window.electronAPI) return;
-    let w = isCollapsed ? 116 : 288;
+    let w = isCollapsed ? 120 : 322;
     if (state === 'recording') w = 296;
     else if (state === 'transcribing' || state === 'refining') w = 256;
     else if (state === 'success') w = 236;
@@ -181,6 +181,7 @@ export default function FloatingWidget() {
         language: providerConfig.language,
         temperature: latestConfig.llm?.temperature ?? 0.2,
         maxTokens: latestConfig.llm?.max_tokens ?? 600,
+        outputLanguage: latestConfig.output_language || 'auto',
       });
 
       if (!res.success || !res.finalText) {
@@ -367,6 +368,15 @@ export default function FloatingWidget() {
 
           <button
             style={{ WebkitAppRegion: 'no-drag' }}
+            onClick={() => window.electronAPI && window.electronAPI.toggleChat()}
+            className="p-1 text-[#8E98B0] hover:text-violet-300 transition-colors cursor-pointer"
+            title="Open AI Chat"
+          >
+            <MessageSquare size={13} />
+          </button>
+
+          <button
+            style={{ WebkitAppRegion: 'no-drag' }}
             onClick={handleToggleCollapse}
             className="p-1 text-[#8E98B0] hover:text-white transition-colors cursor-pointer"
             title="Expand"
@@ -398,15 +408,25 @@ export default function FloatingWidget() {
           <button
             style={{ WebkitAppRegion: 'no-drag' }}
             onClick={cycleNextPreset}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#1C1F33] hover:bg-[#282D4A] text-violet-300 text-[11px] font-bold transition-colors truncate max-w-[125px] cursor-pointer"
+            className="flex items-center gap-1 px-2 py-1 rounded-full bg-[#1C1F33] hover:bg-[#282D4A] text-violet-300 text-[11px] font-bold transition-colors truncate max-w-[115px] cursor-pointer"
             title="Click to Switch Mode"
           >
             <span>{activePreset?.icon || '✨'}</span>
             <span className="truncate">{activePreset?.name || 'Smart Polish'}</span>
           </button>
 
+          {/* Chat Assistant Button */}
+          <button
+            style={{ WebkitAppRegion: 'no-drag' }}
+            onClick={() => window.electronAPI && window.electronAPI.toggleChat()}
+            className="p-1.5 text-violet-300 hover:text-white transition-colors rounded-full hover:bg-violet-600/20 border border-violet-500/20 cursor-pointer"
+            title="Open AI Chat Assistant"
+          >
+            <MessageSquare size={13} />
+          </button>
+
           {/* Hotkey Badge */}
-          <span className="text-[10px] font-mono font-bold text-[#8E98B0] bg-[#161828] px-2 py-0.5 rounded-md border border-[#282C44]">
+          <span className="text-[10px] font-mono font-bold text-[#8E98B0] bg-[#161828] px-1.5 py-0.5 rounded-md border border-[#282C44]">
             {hotkeyLabel}
           </span>
 

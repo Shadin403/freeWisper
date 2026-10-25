@@ -26,6 +26,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Auto-Paste
   autoPaste: (text) => ipcRenderer.invoke('auto-paste', text),
 
+  // AI Chat Assistant
+  openChat: () => ipcRenderer.invoke('open-chat'),
+  closeChat: () => ipcRenderer.invoke('close-chat'),
+  toggleChat: () => ipcRenderer.invoke('toggle-chat'),
+  sendChatMessage: (messages, presetId) => ipcRenderer.invoke('chat-message', { messages, presetId }),
+
   // AI & STT Engine Calls
   processVoicePipeline: (audioData, preset, options) => ipcRenderer.invoke('process-voice-pipeline', { audioData, preset, options }),
   transcribeAudio: (audioData, options) => ipcRenderer.invoke('transcribe-audio', { audioData, options }),

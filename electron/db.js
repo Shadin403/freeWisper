@@ -63,6 +63,15 @@ const DEFAULT_PRESETS = [
     user_prompt_template: 'Translate the following spoken text into natural, professional English:\n\n{transcription}',
   },
   {
+    id: 'bn_to_banglish',
+    name: 'Bangla to Banglish (Smart Polish)',
+    icon: '🔤',
+    description: 'Smart AI-polishes spoken Bengali thoughts and converts them into clean, natural Banglish (English letters).',
+    system_prompt:
+      'You are an expert voice-typing editor and Bengali-to-Banglish polisher, similar to Wispr Flow. Your task is to take spoken Bengali (or mixed speech), SMART-POLISH the thoughts, and convert them into natural, clean, beautifully structured Banglish (Bengali words written using English/Latin letters) as widely used in modern chatting and messaging.\n\nCORE SMART POLISH & TRANSLITERATION RULES:\n1. SMART POLISH & CLEANUP:\n- Remove verbal fillers, false starts, stuttering, and hesitation sounds (e.g. "umm", "uhh", "মানে", "আর কি", "ওই যে", "তো", "লাইক").\n- Fix broken phrasing, repetitions, and awkward grammar into smooth, fluent, natural conversational flow.\n- Add natural punctuation (., ?!) and capitalize sentence beginnings cleanly.\n2. NATURAL BANGLISH SPELLING:\n- Transliterate Bengali words into modern, natural phonetic Banglish as commonly written by Bengali speakers in messaging/email (e.g. "আমি ভালো আছি, আপনি কেমন আছেন?" -> "Ami bhalo achi, apni kemon achen?", "কালকে মিটিং কয়টায় শুরু হবে?" -> "Kalke meeting koytay shuru hobe?").\n- DO NOT translate Bengali meaning into English words. Keep the original Bengali words, but write them phonetically in English letters.\n3. PRESERVE ENGLISH & TECHNICAL WORDS:\n- Keep any English words, technical terms, programming terms, brand names, and numbers in standard English (e.g. "meeting", "office", "call", "project", "login", "API", "10 minute", "Sunday").\n4. PRESERVE MEANING & TONE:\n- Keep the speaker\'s exact tone, emotion, and intent. Never invent, add, or alter facts.\n5. OUTPUT RULES:\n- Output ONLY the final polished Banglish text directly — no preamble, no quotes, no explanations, no notes.',
+    user_prompt_template: 'Smart-polish and convert the following speech into clean, natural Banglish (Bengali written in English letters):\n\n{transcription}',
+  },
+  {
     id: 'email',
     name: 'Professional Email / Message',
     icon: '✉️',
@@ -87,6 +96,15 @@ const DEFAULT_PRESETS = [
     description: 'Inserts exact spoken transcript without any AI modification.',
     system_prompt: '',
     user_prompt_template: '',
+  },
+  {
+    id: 'prompt_engineer',
+    name: 'Prompt Engineer (Smart Prompt)',
+    icon: '🧠',
+    description: 'Transforms spoken task descriptions into structured, professional AI prompts ready for Claude, ChatGPT, Gemini, and coding agents.',
+    system_prompt:
+      'You are an expert prompt engineer. Your task is to transform a spoken task description into a clear, structured, high-quality AI prompt that another AI assistant can execute effectively.\n\nCORE PRINCIPLES:\n1. PRESERVE INTENT: The generated prompt must faithfully represent what the user wants to accomplish.\n2. STRUCTURE FOR THE TASK: Adapt the prompt structure to the actual task category (coding, writing, research, design, etc.). Do not force a rigid template.\n3. INFER CONTEXT: Understand implied context from the speech (e.g., "Laravel" implies PHP/Laravel project, "Botble" implies Botble CMS).\n4. HANDLE BANGLISH NATURALLY: Mixed Bengali/English speech should be understood semantically, not translated word-by-word.\n5. OUTPUT LANGUAGE CONTROL: The generated prompt must be in the requested output language (Auto/Bengali/English). This controls the prompt language, NOT translation.\n\nPROMPT ELEMENTS (use when relevant to the task):\n- ROLE: Identify the appropriate expertise/professional role for the target AI.\n- CONTEXT: Include project details, environment, architecture, constraints mentioned by the user.\n- OBJECTIVE: Clearly state what the user wants to accomplish.\n- REQUIREMENTS: Break into specific, actionable requirements.\n- WORKFLOW/STEPS: Define a sensible sequence for investigation, planning, implementation, verification when needed.\n- CONSTRAINTS: Preserve user restrictions, security requirements, production safety rules, compatibility needs.\n- EXPECTED OUTPUT: Specify what the target AI should deliver (code, report, document, test results, etc.).\n- VERIFICATION: Include acceptance criteria, testing instructions, or measurable success conditions when relevant.\n- UNCERTAINTY HANDLING: If essential information is missing, instruct the target AI to inspect project context or ask focused clarifying questions. Otherwise, proceed with reasonable, clearly stated assumptions.\n\nQUALITY REQUIREMENTS:\n- Remove speech disfluencies, fillers, repetitions.\n- Convert vague instructions into actionable requirements when meaning is clear.\n- Avoid unnecessary verbosity and redundant instructions.\n- Do not add unrequested features or scope.\n- Preserve explicit preferences and negative constraints.\n- Use headings and bullet points for complex tasks; keep simple tasks concise.\n- Return ONLY the generated prompt — no introduction, explanation, quotes, or postscript.\n- The prompt must be copy-ready for the intended AI assistant.\n- Do not execute the task yourself; generate a prompt that instructs another AI to do it.\n\nTASK CATEGORY ADAPTATION:\n- CODING/DEBUGGING: Emphasize repository inspection, existing architecture understanding, minimal changes, safety, implementation, testing.\n- WRITING/EMAIL: Emphasize audience, tone, purpose, format, required content.\n- RESEARCH: Emphasize evidence, reliable sources, uncertainty, citations.\n- UI/UX DESIGN: Emphasize layout, responsiveness, accessibility, design conventions.\n- GENERAL: Use appropriate structure for the task type.\n\nLANGUAGE HANDLING:\n- AUTO: Infer output language from the spoken task (if mostly Bengali → Bengali prompt, mostly English → English prompt, mixed → English prompt for technical tasks).\n- BENGALI: Generate complete prompt in natural Bengali, keeping standard technical terms in English.\n- ENGLISH: Generate professional English prompt even if input is Bengali/Banglish.',
+    user_prompt_template: 'Transform the following spoken task description into a structured, professional AI prompt. The output language should be: {output_language}.\n\nSpoken task: {transcription}',
   },
 ];
 
@@ -151,6 +169,7 @@ const DEFAULT_CONFIG = {
     pill_position_x: null,
     pill_position_y: null,
   },
+  output_language: 'auto', // 'auto' | 'bn' | 'en'
   presets: DEFAULT_PRESETS,
   active_preset_id: 'smart_polish',
 };
@@ -181,24 +200,44 @@ class Storage {
           ...DEFAULT_PROVIDERS,
           ...(parsed.providers || {}),
         });
+        const savedPresets = Array.isArray(parsed.presets) ? parsed.presets : DEFAULT_PRESETS;
+        const savedPresetIds = new Set(savedPresets.map((p) => p.id));
+        const missingDefaultPresets = DEFAULT_PRESETS.filter((dp) => !savedPresetIds.has(dp.id));
+        let presetsUpdated = missingDefaultPresets.length > 0;
+
+        // Upgrade bn_to_banglish if missing or using older prompt without smart polish
+        const mergedPresets = savedPresets.map((p) => {
+          if (p.id === 'bn_to_banglish' && (!p.system_prompt || !p.system_prompt.includes('SMART-POLISH'))) {
+            const def = DEFAULT_PRESETS.find((dp) => dp.id === 'bn_to_banglish');
+            if (def) {
+              presetsUpdated = true;
+              return { ...p, ...def };
+            }
+          }
+          return p;
+        });
+        if (missingDefaultPresets.length > 0) {
+          mergedPresets.push(...missingDefaultPresets);
+        }
+
         const migrated = {
           ...DEFAULT_CONFIG,
           ...parsed,
           providers,
           ui: { ...DEFAULT_CONFIG.ui, ...(parsed.ui || {}) },
           hotkeys: { ...DEFAULT_CONFIG.hotkeys, ...(parsed.hotkeys || {}) },
-          presets: parsed.presets || DEFAULT_PRESETS,
+          presets: mergedPresets,
         };
 
-        // Persist renamed labels once so old AppData config is permanently migrated.
+        // Persist renamed labels or newly added default presets so AppData config is permanently migrated.
         const hadLegacyProviderName = Object.entries(PROVIDER_DISPLAY_NAMES).some(
           ([id, name]) => parsed.providers?.[id]?.name && parsed.providers[id].name !== name
         );
-        if (hadLegacyProviderName) {
+        if (hadLegacyProviderName || presetsUpdated) {
           try {
             fs.writeFileSync(CONFIG_PATH, JSON.stringify(migrated, null, 2), 'utf-8');
           } catch (writeError) {
-            console.warn('Could not persist provider-name migration:', writeError.message);
+            console.warn('Could not persist migration to config.json:', writeError.message);
           }
         }
         return migrated;

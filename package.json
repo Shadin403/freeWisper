@@ -1,6 +1,6 @@
 {
   "name": "freewispr-voice-assistant",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "FreeWispr - Modern Windows Voice Typing & AI Assistant built with Electron, React, OmniRoute & OpenRouter",
   "main": "electron/main.js",
   "scripts": {

@@ -14,7 +14,7 @@ FreeWispr ব্যবহার করতে প্রথমে যেকোন�
 ✅ “মানে”, “আর কি”, “উম”, “আ…”–এর মতো filler word ও অপ্রয়োজনীয় repetition সরিয়ে দেয়
 ✅ punctuation, spacing এবং ছোটখাটো grammar ঠিক করে
 ✅ Chrome, Facebook, Messenger, Word, Notepad, VS Code, Slackসহ প্রায় যেকোনো active input field-এ সরাসরি paste করে
-✅ Smart Polish, Raw Transcription, Summary, Professional Email, Bengali-to-English Translation এবং Developer Notes mode আছে
+✅ Smart Polish, Raw Transcription, Summary, Bangla to Banglish (স্মার্ট এআই পলিশ সহ বাংলিশ টাইপিং), Professional Email, Bengali-to-English Translation এবং Developer Notes mode আছে
 ✅ ছোট floating widget এবং global **F8** shortcut আছে
 ✅ Windows চালু হলে automatically start করতে পারে
 ✅ নিজের পছন্দের OpenRouter, OpenAI, Groq, OmniRoute বা Custom Router ব্যবহার করা যায়

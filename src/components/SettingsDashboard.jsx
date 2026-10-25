@@ -23,11 +23,13 @@ import {
   EyeOff,
   Download,
   Info,
+  MessageSquare,
 } from 'lucide-react';
 import { soundFx } from '../utils/soundEffects';
 import { AudioRecorder } from '../utils/audioRecorder';
 
 import Logo from './Logo';
+import ChatWidget from './ChatWidget';
 
 const PROVIDER_PROFILES = [
   { id: 'omniroute', label: '⚡ OmniRoute (Router)', name: 'OmniRoute (Router)', icon: Zap },
@@ -472,8 +474,16 @@ export default function SettingsDashboard() {
         {/* Action Buttons */}
         <div className="flex items-center gap-2.5">
           <button
+            onClick={() => window.electronAPI && window.electronAPI.openChat()}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 text-xs font-semibold border border-violet-500/30 transition-colors cursor-pointer"
+            title="Pop out Floating AI Chat"
+          >
+            <MessageSquare size={13} />
+            Floating AI Chat
+          </button>
+          <button
             onClick={() => window.electronAPI && window.electronAPI.centerWidget()}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#181B2C] hover:bg-[#232740] text-violet-300 text-xs font-semibold border border-[#282C44] transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#181B2C] hover:bg-[#232740] text-violet-300 text-xs font-semibold border border-[#282C44] transition-colors cursor-pointer"
           >
             <Compass size={13} />
             Center Floating Widget
@@ -487,6 +497,7 @@ export default function SettingsDashboard() {
           { id: 'provider', label: 'AI & Voice Provider', icon: Cpu },
           { id: 'presets', label: 'Prompts & Modes', icon: Sparkles },
           { id: 'shortcuts', label: 'Shortcuts & Mic', icon: Keyboard },
+          { id: 'chat', label: 'AI Chat Assistant', icon: MessageSquare },
           { id: 'history', label: 'History & Logs', icon: HistoryIcon },
           { id: 'about', label: 'Updates & About', icon: Info },
         ].map((tab) => {
@@ -739,6 +750,31 @@ export default function SettingsDashboard() {
                 />
               </div>
 
+              {/* Output Language Setting (only for Prompt Engineer mode) */}
+              {selectedPresetId === 'prompt_engineer' && (
+                <div className="space-y-1.5 p-3 rounded-xl bg-[#1A1D2F] border border-[#323754]">
+                  <label className="text-xs font-bold text-[#E2E8F0] block mb-1">Output Language:</label>
+                  <select
+                    value={config?.output_language || 'auto'}
+                    onChange={(e) => {
+                      const newConfig = { ...config, output_language: e.target.value };
+                      setConfig(newConfig);
+                      if (window.electronAPI) {
+                        window.electronAPI.updateConfig({ output_language: e.target.value });
+                      }
+                    }}
+                    className="w-full px-3 py-1.5 rounded-xl bg-[#161828] border border-[#2A2E47] text-white text-xs font-mono focus:outline-none focus:border-violet-500"
+                  >
+                    <option value="auto">Auto (Infer from spoken task)</option>
+                    <option value="bn">Bengali (বাংলা)</option>
+                    <option value="en">English</option>
+                  </select>
+                  <p className="text-[10px] text-[#8E98B0]">
+                    Controls the language of the generated prompt. "Auto" infers from your speech — technical tasks default to English.
+                  </p>
+                </div>
+              )}
+
               <div className="flex-1 flex flex-col space-y-1">
                 <label className="text-xs font-bold text-[#E2E8F0]">System Prompt (Formatting & Rules):</label>
                 <textarea
@@ -883,6 +919,13 @@ export default function SettingsDashboard() {
                 FreeWispr will run quietly in the system tray after you sign in to Windows.
               </p>
             </div>
+          </div>
+        )}
+
+        {/* ==================== TAB: AI CHAT ASSISTANT ==================== */}
+        {activeTab === 'chat' && (
+          <div className="max-w-3xl mx-auto h-[620px] pb-2">
+            <ChatWidget isEmbedded={true} />
           </div>
         )}
 
