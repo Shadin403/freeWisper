@@ -89,7 +89,7 @@ export default function ChatWidget({ isEmbedded = false, onClose }) {
       return 'Hello! I am your FreeWispr AI Assistant. "Bangla to English" mode is active. Ask me anything or share your thoughts, and I will help in fluent, professional English!';
     }
     if (id === 'smart_polish') {
-      return 'নমস্কার! আমি FreeWispr AI অ্যাসিস্ট্যান্ট। "Smart Polish" মোড সক্রিয় আছে। যেকোনো কথা লিখুন বা বলুন, আমি পরিচ্ছন্ন ও শুদ্ধ ভাষায় আপনাকে উত্তর দেব!';
+      return 'হ্যালো! আমি FreeWispr AI অ্যাসিস্ট্যান্ট। "Smart Polish" মোড সক্রিয় আছে। যেকোনো কথা লিখুন বা বলুন, আমি পরিচ্ছন্ন ও শুদ্ধ ভাষায় আপনাকে উত্তর দেব!';
     }
     if (id === 'summary') {
       return 'স্বাগতম! "Executive Summary" মোড সক্রিয় রয়েছে। যেকোনো বড় লেখা বা বিষয় বলুন, আমি পয়েন্ট আকারে সামারি করে দেব!';
@@ -99,6 +99,9 @@ export default function ChatWidget({ isEmbedded = false, onClose }) {
     }
     if (id === 'dev_notes') {
       return 'Developer mode active! Ask coding questions, bug fixes, or architecture ideas — I will provide clean markdown, checklists, and code snippets.';
+    }
+    if (id === 'prompt_engineer') {
+      return 'হ্যালো! "Prompt Engineer" মোড সক্রিয় আছে। যেকোনো কাজের বর্ণনা দিন বা বলুন, আমি চমৎকার ও গোছানো AI Prompt তৈরি করে দেব!';
     }
     return `Hello! FreeWispr AI is ready in "${preset?.name || 'Active'}" mode. How can I help you today?`;
   }

@@ -548,6 +548,10 @@ class AIEngine {
       modeInstruction =
         'You are FreeWispr AI, a senior software engineer assistant.\n' +
         'CRITICAL RULE: Provide accurate developer notes, markdown checklists (- [ ]), and code snippets in proper fenced code blocks with language tags.';
+    } else if (presetId === 'prompt_engineer') {
+      modeInstruction =
+        'You are FreeWispr AI, an expert prompt engineering assistant.\n' +
+        'CRITICAL RULE: Help craft, improve, and generate structured, professional AI prompts for Claude, ChatGPT, Gemini, and coding agents based on user task descriptions.';
     } else {
       modeInstruction =
         `You are FreeWispr AI Assistant operating in "${presetName}" mode.\n` +
