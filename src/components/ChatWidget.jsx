@@ -13,7 +13,7 @@ import {
   User,
   Loader2,
   ChevronDown,
-  GripHorizontal,
+  ArrowDown,
 } from 'lucide-react';
 import Logo from './Logo';
 import { AudioRecorder } from '../utils/audioRecorder';
@@ -30,8 +30,9 @@ export default function ChatWidget({ isEmbedded = false, onClose }) {
   const [audioLevel, setAudioLevel] = useState(0);
   const [copiedId, setCopiedId] = useState(null);
   const [showModeDropdown, setShowModeDropdown] = useState(false);
+  const [showScrollBottom, setShowScrollBottom] = useState(false);
 
-  const messagesEndRef = useRef(null);
+  const chatContainerRef = useRef(null);
   const textareaRef = useRef(null);
   const recorderRef = useRef(null);
   const configRef = useRef(null);
@@ -69,9 +70,27 @@ export default function ChatWidget({ isEmbedded = false, onClose }) {
     });
   }, []);
 
-  // Auto-scroll to bottom of chat
+  // Track scroll position to show/hide "Scroll to bottom" button
+  const handleScroll = () => {
+    if (!chatContainerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+    const isFarFromBottom = scrollHeight - scrollTop - clientHeight > 100;
+    setShowScrollBottom(isFarFromBottom);
+  };
+
+  // Dedicated container-only scroll to bottom (never scrolls the window or body)
+  const scrollToBottom = (smooth = true) => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTo({
+        top: chatContainerRef.current.scrollHeight,
+        behavior: smooth ? 'smooth' : 'auto',
+      });
+    }
+  };
+
+  // Auto-scroll inside the container on new messages or loading changes
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    scrollToBottom(true);
   }, [messages, isLoading]);
 
   const activePreset = presets.find((p) => p.id === activePresetId) || presets[0] || {
@@ -294,20 +313,27 @@ export default function ChatWidget({ isEmbedded = false, onClose }) {
   };
 
   return (
-    <div className="h-full w-full flex flex-col bg-[#0B0C13] text-[#F8FAFC] border border-[#25283D] rounded-2xl shadow-2xl overflow-hidden backdrop-blur-2xl">
+    <div
+      className={`w-full h-full flex flex-col overflow-hidden select-none ${
+        isEmbedded
+          ? 'bg-[#0B0C15] border border-violet-500/25 rounded-2xl shadow-xl'
+          : 'bg-gradient-to-b from-[#101326] via-[#0B0C16] to-[#07080E] border-2 border-violet-500/40 rounded-2xl shadow-[0_0_40px_rgba(124,58,237,0.35),0_20px_50px_rgba(0,0,0,0.9)] ring-1 ring-violet-400/20'
+      }`}
+    >
       {/* 1. TOP HEADER / TITLEBAR */}
       <header
         style={{ WebkitAppRegion: isEmbedded ? 'no-drag' : 'drag' }}
-        className="flex items-center justify-between px-4 py-3 bg-[#0E101A] border-b border-[#1E2235] select-none"
+        className="shrink-0 flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-[#121528] via-[#0E101E] to-[#121528] border-b border-violet-500/25 select-none"
       >
         <div className="flex items-center gap-2.5">
-          <Logo size={24} />
+          <Logo size={22} />
           <div className="flex items-center gap-1.5">
             <h2 className="text-xs font-extrabold tracking-tight text-white flex items-center gap-1.5">
               FreeWispr AI Chat
             </h2>
-            <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20">
-              Live
+            <span className="flex items-center gap-1 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Ready
             </span>
           </div>
         </div>
@@ -316,31 +342,31 @@ export default function ChatWidget({ isEmbedded = false, onClose }) {
         <div className="relative" style={{ WebkitAppRegion: 'no-drag' }}>
           <button
             onClick={() => setShowModeDropdown(!showModeDropdown)}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#181B2C] hover:bg-[#252840] text-violet-300 text-[11px] font-bold border border-violet-500/25 transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-violet-950/40 hover:bg-violet-900/50 text-violet-300 text-[11px] font-bold border border-violet-500/30 hover:border-violet-400 hover:shadow-[0_0_12px_rgba(139,92,246,0.3)] transition-all cursor-pointer"
             title="Switch Mode for AI Chat"
           >
             <span>{activePreset?.icon || '✨'}</span>
-            <span className="truncate max-w-[130px]">{activePreset?.name || 'Mode'}</span>
+            <span className="truncate max-w-[125px]">{activePreset?.name || 'Mode'}</span>
             <ChevronDown size={11} className={showModeDropdown ? 'rotate-180 transition-transform' : 'transition-transform'} />
           </button>
 
           {showModeDropdown && (
-            <div className="absolute right-0 mt-1.5 w-60 py-1 rounded-xl bg-[#131522] border border-[#2B2E48] shadow-2xl z-50 overflow-hidden">
-              <div className="px-3 py-1.5 text-[10px] uppercase font-bold text-[#8E98B0] border-b border-[#25283D]">
-                Select AI Chat Mode:
+            <div className="absolute right-0 mt-2 w-64 py-1.5 rounded-2xl bg-[#121527] border border-violet-500/30 shadow-[0_10px_30px_rgba(0,0,0,0.8)] z-50 overflow-hidden backdrop-blur-2xl">
+              <div className="px-3.5 py-1.5 text-[10px] uppercase font-bold text-violet-400/80 tracking-wider border-b border-[#202540]">
+                Select AI Chat Mode
               </div>
-              <div className="max-h-64 overflow-y-auto py-1">
+              <div className="max-h-64 overflow-y-auto py-1 chat-scroll">
                 {presets.map((p) => (
                   <button
                     key={p.id}
                     onClick={() => handleSelectMode(p)}
-                    className={`w-full px-3 py-1.5 text-left text-xs flex items-center gap-2 hover:bg-violet-600/20 transition-colors cursor-pointer ${
-                      p.id === activePresetId ? 'text-violet-300 font-bold bg-violet-600/10' : 'text-[#CBD5E1]'
+                    className={`w-full px-3.5 py-2 text-left text-xs flex items-center gap-2 hover:bg-violet-600/20 transition-colors cursor-pointer ${
+                      p.id === activePresetId ? 'text-violet-200 font-bold bg-violet-600/15' : 'text-[#CBD5E1]'
                     }`}
                   >
-                    <span>{p.icon || '✨'}</span>
+                    <span className="text-sm">{p.icon || '✨'}</span>
                     <span className="truncate">{p.name}</span>
-                    {p.id === activePresetId && <Check size={12} className="ml-auto text-violet-400" />}
+                    {p.id === activePresetId && <Check size={12} className="ml-auto text-violet-400 shrink-0" />}
                   </button>
                 ))}
               </div>
@@ -352,7 +378,7 @@ export default function ChatWidget({ isEmbedded = false, onClose }) {
         <div className="flex items-center gap-1" style={{ WebkitAppRegion: 'no-drag' }}>
           <button
             onClick={handleClearChat}
-            className="p-1.5 rounded-lg text-[#8E98B0] hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-[#8E98B0] hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
             title="Clear Chat History"
           >
             <Trash2 size={13} />
@@ -360,7 +386,7 @@ export default function ChatWidget({ isEmbedded = false, onClose }) {
           {!isEmbedded && (
             <button
               onClick={handleClose}
-              className="p-1.5 rounded-lg text-[#8E98B0] hover:text-rose-400 hover:bg-white/5 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-[#8E98B0] hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
               title="Close Chat"
             >
               <X size={14} />
@@ -370,21 +396,25 @@ export default function ChatWidget({ isEmbedded = false, onClose }) {
       </header>
 
       {/* 2. MODE INFO BANNER */}
-      <div className="px-4 py-1.5 bg-[#121422] border-b border-[#1E2235]/60 flex items-center justify-between text-[11px] text-[#94A3B8]">
+      <div className="shrink-0 px-4 py-1.5 bg-gradient-to-r from-violet-950/30 via-[#101222] to-violet-950/20 border-b border-violet-500/15 flex items-center justify-between text-[11px] text-[#94A3B8]">
         <div className="flex items-center gap-1.5 truncate">
           <Sparkles size={11} className="text-violet-400 shrink-0" />
           <span className="truncate">
-            Mode:{' '}
+            Active Mode:{' '}
             <strong className="text-violet-300 font-semibold">{activePreset?.name}</strong>
           </span>
         </div>
-        <span className="text-[10px] text-[#64748B] shrink-0 font-mono">
-          {activePresetId === 'bn_to_banglish' ? 'Replies in Banglish' : 'Mode active'}
+        <span className="text-[10px] text-[#64748B] shrink-0 font-mono px-2 py-0.5 rounded-md bg-[#141728] border border-[#232742]">
+          {activePresetId === 'bn_to_banglish' ? 'Replies in Banglish' : activePresetId === 'prompt_engineer' ? 'Structured Prompts' : 'Smart Voice'}
         </span>
       </div>
 
-      {/* 3. MESSAGE LIST CONTAINER */}
-      <div className="flex-1 p-4 overflow-y-auto space-y-3.5 scroll-smooth">
+      {/* 3. MESSAGE LIST CONTAINER (Scrollable Area) */}
+      <div
+        ref={chatContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 min-h-0 p-4 overflow-y-auto space-y-3.5 chat-scroll relative select-text"
+      >
         {messages.map((m) => {
           const isUser = m.role === 'user';
           return (
@@ -396,32 +426,33 @@ export default function ChatWidget({ isEmbedded = false, onClose }) {
               <div
                 className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 text-xs font-bold ${
                   isUser
-                    ? 'bg-violet-600 text-white shadow-[0_0_10px_rgba(124,58,237,0.4)]'
-                    : 'bg-[#1C1F33] text-violet-400 border border-[#2E3352]'
+                    ? 'bg-gradient-to-br from-violet-500 to-indigo-600 text-white shadow-[0_0_12px_rgba(124,58,237,0.5)] border border-violet-400/40'
+                    : 'bg-[#15182C] text-violet-400 border border-violet-500/25 shadow-sm'
                 }`}
               >
-                {isUser ? <User size={14} /> : <span>{m.modeIcon || '🤖'}</span>}
+                {isUser ? <User size={13} /> : <span className="text-xs">{m.modeIcon || '🤖'}</span>}
               </div>
 
               {/* Message Bubble */}
               <div
-                className={`max-w-[82%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed transition-all relative group ${
+                className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-[12px] leading-relaxed transition-all relative group ${
                   isUser
-                    ? 'bg-violet-600 text-white rounded-tr-none shadow-md'
+                    ? 'bg-gradient-to-br from-violet-600 via-violet-600 to-indigo-600 text-white rounded-tr-none shadow-[0_4px_16px_rgba(124,58,237,0.35)] border border-violet-400/30'
                     : m.isError
-                    ? 'bg-rose-950/60 border border-rose-500/40 text-rose-200 rounded-tl-none'
-                    : 'bg-[#151726] border border-[#25283D] text-[#E2E8F0] rounded-tl-none shadow-sm'
+                    ? 'bg-rose-950/60 border border-rose-500/40 text-rose-200 rounded-tl-none shadow-md'
+                    : 'bg-[#14172B] border border-violet-500/20 hover:border-violet-500/35 text-[#E2E8F0] rounded-tl-none shadow-[0_2px_12px_rgba(0,0,0,0.3)]'
                 }`}
               >
                 {/* Header Tag for Assistant messages */}
                 {!isUser && (
-                  <div className="flex items-center justify-between mb-1 pb-1 border-b border-[#25283D]/60 text-[10px] text-[#8E98B0]">
+                  <div className="flex items-center justify-between mb-1.5 pb-1.5 border-b border-violet-500/15 text-[10px] text-[#8E98B0]">
                     <span className="font-semibold text-violet-300 flex items-center gap-1">
-                      {m.modeIcon} {m.modeName}
+                      <span>{m.modeIcon}</span>
+                      <span>{m.modeName}</span>
                     </span>
                     <button
                       onClick={() => handleCopyMessage(m.id, m.text)}
-                      className="p-0.5 rounded text-[#8E98B0] hover:text-white transition-colors cursor-pointer flex items-center gap-1"
+                      className="px-1.5 py-0.5 rounded-md bg-white/5 hover:bg-white/10 text-[#8E98B0] hover:text-white transition-colors cursor-pointer flex items-center gap-1 border border-white/5"
                       title="Copy Response"
                     >
                       {copiedId === m.id ? (
@@ -441,7 +472,7 @@ export default function ChatWidget({ isEmbedded = false, onClose }) {
 
                 {/* Timestamp */}
                 <div
-                  className={`text-[9px] mt-1 text-right select-none ${
+                  className={`text-[9px] mt-1.5 text-right select-none ${
                     isUser ? 'text-violet-200/70' : 'text-[#64748B]'
                   }`}
                 >
@@ -455,24 +486,36 @@ export default function ChatWidget({ isEmbedded = false, onClose }) {
         {/* AI Thinking Indicator */}
         {isLoading && (
           <div className="flex items-start gap-2.5">
-            <div className="w-7 h-7 rounded-xl bg-[#1C1F33] text-violet-400 border border-[#2E3352] flex items-center justify-center shrink-0">
-              <Bot size={14} />
+            <div className="w-7 h-7 rounded-xl bg-[#15182C] text-violet-400 border border-violet-500/25 flex items-center justify-center shrink-0">
+              <Bot size={13} />
             </div>
-            <div className="bg-[#151726] border border-[#25283D] text-[#8E98B0] rounded-2xl rounded-tl-none px-3.5 py-2.5 text-xs flex items-center gap-2">
+            <div className="bg-[#14172B] border border-violet-500/20 text-violet-300 rounded-2xl rounded-tl-none px-4 py-2.5 text-xs flex items-center gap-2 shadow-sm">
               <Loader2 size={13} className="text-violet-400 animate-spin" />
               <span>FreeWispr is thinking in {activePreset?.name}...</span>
             </div>
           </div>
         )}
 
-        <div ref={messagesEndRef} />
+        {/* Floating "Scroll to bottom" button */}
+        {showScrollBottom && (
+          <div className="sticky bottom-1 left-0 right-0 flex justify-center z-20 pointer-events-none">
+            <button
+              type="button"
+              onClick={() => scrollToBottom(true)}
+              className="pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-violet-600/95 hover:bg-violet-500 text-white text-[11px] font-bold shadow-[0_0_20px_rgba(124,58,237,0.6)] border border-violet-400/40 backdrop-blur-md transition-all active:scale-95 cursor-pointer"
+            >
+              <ArrowDown size={12} strokeWidth={2.5} />
+              <span>Scroll to bottom</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 4. BOTTOM INPUT BAR */}
-      <footer className="p-3 bg-[#0E101A] border-t border-[#1E2235]">
+      <footer className="shrink-0 p-3 bg-gradient-to-b from-[#0F1120] to-[#0A0C16] border-t border-violet-500/20">
         {/* Voice Wave Animation while recording voice query */}
         {isRecording && (
-          <div className="mb-2 px-3 py-1.5 rounded-xl bg-red-950/40 border border-red-500/40 flex items-center justify-between text-xs text-red-300 animate-pulse">
+          <div className="mb-2 px-3 py-1.5 rounded-xl bg-red-950/50 border border-red-500/40 flex items-center justify-between text-xs text-red-300 animate-pulse">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
               <span>Listening to your voice... Speak now</span>
@@ -491,15 +534,15 @@ export default function ChatWidget({ isEmbedded = false, onClose }) {
           </div>
         )}
 
-        <div className="flex items-end gap-2 bg-[#131522] border border-[#282C44] focus-within:border-violet-500/80 rounded-2xl p-1.5 transition-all shadow-inner">
+        <div className="flex items-end gap-2 bg-[#12152A] border border-violet-500/25 focus-within:border-violet-500 focus-within:ring-2 focus-within:ring-violet-500/20 focus-within:shadow-[0_0_20px_rgba(124,58,237,0.3)] rounded-2xl p-1.5 transition-all shadow-inner">
           {/* Voice Typing Button */}
           <button
             type="button"
             onClick={handleToggleVoice}
             className={`p-2 rounded-xl transition-all cursor-pointer shrink-0 ${
               isRecording
-                ? 'bg-red-600 text-white shadow-[0_0_12px_rgba(239,68,68,0.6)]'
-                : 'text-[#8E98B0] hover:text-violet-300 hover:bg-white/5'
+                ? 'bg-red-600 text-white shadow-[0_0_12px_rgba(239,68,68,0.7)]'
+                : 'text-[#8E98B0] hover:text-violet-300 hover:bg-violet-500/10'
             }`}
             title={isRecording ? 'Stop Voice Input' : 'Voice Input (Click & Speak)'}
           >
@@ -520,6 +563,8 @@ export default function ChatWidget({ isEmbedded = false, onClose }) {
             placeholder={
               activePresetId === 'bn_to_banglish'
                 ? 'Ask in Bangla/English... (AI replies in Banglish)'
+                : activePresetId === 'prompt_engineer'
+                ? 'Describe a task... (AI creates structured prompt)'
                 : `Message FreeWispr in ${activePreset?.name}...`
             }
             className="flex-1 max-h-32 bg-transparent text-xs text-white placeholder:text-[#64748B] resize-none outline-none py-1.5 px-1 leading-relaxed"
@@ -530,7 +575,7 @@ export default function ChatWidget({ isEmbedded = false, onClose }) {
             type="button"
             onClick={handleSendMessage}
             disabled={!inputText.trim() || isLoading}
-            className="p-2 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-30 disabled:hover:bg-violet-600 text-white transition-all cursor-pointer shrink-0 shadow-[0_0_12px_rgba(124,58,237,0.4)]"
+            className="p-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 disabled:opacity-30 disabled:hover:from-violet-600 text-white transition-all cursor-pointer shrink-0 shadow-[0_0_14px_rgba(124,58,237,0.4)] active:scale-95"
             title="Send Message (Enter)"
           >
             <Send size={14} />

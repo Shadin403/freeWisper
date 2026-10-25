@@ -24,7 +24,7 @@ export default function App() {
   }, []);
 
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full overflow-hidden">
       {view === 'settings' ? (
         <SettingsDashboard />
       ) : view === 'chat' ? (
